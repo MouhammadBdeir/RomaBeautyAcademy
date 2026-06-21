@@ -1,16 +1,24 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { DEFAULT_SECTIONS, type SectionVisibility } from "@/lib/sections";
 
-const SectionsContext = createContext<SectionVisibility>(DEFAULT_SECTIONS);
+type SectionsContextValue = {
+    sections: SectionVisibility;
+    setLocal: (id: string, value: boolean) => void;
+};
 
-function normalize(data: Record<string, unknown>): SectionVisibility {
+const SectionsContext = createContext<SectionsContextValue>({
+    sections: DEFAULT_SECTIONS,
+    setLocal: () => {},
+});
+
+function merge(data: unknown): SectionVisibility {
     const out: SectionVisibility = { ...DEFAULT_SECTIONS };
-    for (const [k, v] of Object.entries(data)) {
-        if (k in out && typeof v === "boolean") out[k] = v;
+    if (data && typeof data === "object") {
+        for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+            if (k in out && typeof v === "boolean") out[k] = v;
+        }
     }
     return out;
 }
@@ -25,20 +33,48 @@ export function SectionsProvider({
     const [sections, setSections] = useState<SectionVisibility>(initial ?? DEFAULT_SECTIONS);
 
     useEffect(() => {
-        const unsub = onSnapshot(
-            doc(db, "config", "sections"),
-            (snap) => setSections(normalize((snap.data() ?? {}) as Record<string, unknown>)),
-            () => {},
-        );
-        return () => unsub();
+        let active = true;
+        let timer: ReturnType<typeof setTimeout>;
+
+        const tick = async () => {
+            try {
+                const res = await fetch("/api/site-state", { cache: "no-store" });
+                if (active && res.ok) {
+                    const data = await res.json();
+                    setSections(merge(data?.sections));
+                }
+            } catch {
+                /* ignorieren */
+            }
+            if (active) {
+                const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+                timer = setTimeout(tick, hidden ? 20000 : 4000);
+            }
+        };
+
+        tick();
+        return () => {
+            active = false;
+            clearTimeout(timer);
+        };
     }, []);
 
-    return <SectionsContext.Provider value={sections}>{children}</SectionsContext.Provider>;
+    // Optimistisches Setzen: Admin-UI reagiert sofort; das Polling bestätigt.
+    const setLocal = useCallback((id: string, value: boolean) => {
+        setSections((prev) => ({ ...prev, [id]: value }));
+    }, []);
+
+    return (
+        <SectionsContext.Provider value={{ sections, setLocal }}>{children}</SectionsContext.Provider>
+    );
 }
 
 export function useSectionVisible(id: string): boolean {
-    const sections = useContext(SectionsContext);
-    return sections[id] ?? true;
+    return useContext(SectionsContext).sections[id] ?? true;
+}
+
+export function useSetSectionVisible() {
+    return useContext(SectionsContext).setLocal;
 }
 
 /** Rendert die Kinder nur, wenn die Sektion sichtbar geschaltet ist. */

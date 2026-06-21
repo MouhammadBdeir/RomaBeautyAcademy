@@ -6,6 +6,7 @@ import Link from "next/link";
 export default function Navbar() {
     const [scrollProgress, setScrollProgress] = useState(0);
     const [open, setOpen] = useState(false);
+    const [logo, setLogo] = useState("");
 
     useEffect(() => {
         const handleScroll = () => {
@@ -18,6 +19,32 @@ export default function Navbar() {
 
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    // Logo aus den Medien-Daten (live, ohne Rules).
+    useEffect(() => {
+        let active = true;
+        let timer: ReturnType<typeof setTimeout>;
+        const tick = async () => {
+            try {
+                const res = await fetch("/api/site-state", { cache: "no-store" });
+                if (active && res.ok) {
+                    const d = await res.json();
+                    setLogo(typeof d?.images?.logo === "string" ? d.images.logo : "");
+                }
+            } catch {
+                /* ignorieren */
+            }
+            if (active) {
+                const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+                timer = setTimeout(tick, hidden ? 30000 : 12000);
+            }
+        };
+        tick();
+        return () => {
+            active = false;
+            clearTimeout(timer);
+        };
     }, []);
 
     return (
@@ -44,16 +71,22 @@ export default function Navbar() {
                 ">
 
                     {/* LOGO */}
-                    <div className="tracking-[0.25em] font-bold text-sm md:text-base ">
-                        <span className="text-[#C8A24A]  font-medium ">RomaBeauty</span>Academy
-                    </div>
+                    <Link href="/" aria-label="Zur Startseite" className="flex items-center">
+                        {logo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={logo} alt="RomaBeautyAcademy" className="h-8 md:h-9 w-auto" />
+                        ) : (
+                            <span className="tracking-[0.25em] font-bold text-sm md:text-base">
+                                <span className="text-[#C8A24A] font-medium">RomaBeauty</span>Academy
+                            </span>
+                        )}
+                    </Link>
 
                     {/* DESKTOP MENU */}
                     <nav className="hidden md:flex gap-10 text-sm text-gray-600">
                         <Link href="/" className="hover:text-[#C8A24A] transition">Home</Link>
                         <Link href="#services" className="hover:text-[#C8A24A] transition">Services</Link>
                         <Link href="/about" className="hover:text-[#C8A24A] transition">About</Link>
-                        <Link  href="/booking" className="hover:text-[#C8A24A] transition">Contact</Link>
                     </nav>
 
                     {/* RIGHT SIDE */}

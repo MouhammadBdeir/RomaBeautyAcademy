@@ -1,6 +1,5 @@
-// Client-seitiger Upload zu Firebase Storage mit Fortschritts-Callback.
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { storage, auth } from "@/lib/firebase/client";
+// Upload läuft über die geschützte Server-Route /api/admin/upload (Admin-SDK).
+// Dadurch sind KEINE Firebase-Storage-Rules nötig. Fortschritt via XHR.
 
 export type UploadHandle = {
     promise: Promise<{ url: string; path: string }>;
@@ -12,34 +11,41 @@ export function uploadFile(
     folder: "website-images" | "gallery",
     onProgress?: (percent: number) => void,
 ): UploadHandle {
-    if (!auth.currentUser) {
-        return {
-            promise: Promise.reject(
-                new Error("Nicht eingeloggt. Bitte melde dich erneut an, um hochzuladen."),
-            ),
-            cancel: () => {},
-        };
-    }
-
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${folder}/${crypto.randomUUID()}-${safeName}`;
-    const task = uploadBytesResumable(ref(storage, path), file, { contentType: file.type });
+    const xhr = new XMLHttpRequest();
 
     const promise = new Promise<{ url: string; path: string }>((resolve, reject) => {
-        task.on(
-            "state_changed",
-            (snap) => onProgress?.(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
-            (err) => reject(err),
-            async () => {
+        const fd = new FormData();
+        fd.append("folder", folder);
+        fd.append("file", file);
+
+        xhr.open("POST", "/api/admin/upload");
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100));
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
                 try {
-                    const url = await getDownloadURL(task.snapshot.ref);
-                    resolve({ url, path });
-                } catch (err) {
-                    reject(err);
+                    const r = JSON.parse(xhr.responseText);
+                    resolve({ url: r.url, path: r.path });
+                } catch {
+                    reject(new Error("Ungültige Server-Antwort."));
                 }
-            },
-        );
+            } else {
+                let msg = "Upload fehlgeschlagen.";
+                try {
+                    msg = JSON.parse(xhr.responseText).error ?? msg;
+                } catch {
+                    /* ignore */
+                }
+                reject(new Error(msg));
+            }
+        };
+
+        xhr.onerror = () => reject(new Error("Netzwerkfehler beim Upload."));
+        xhr.send(fd);
     });
 
-    return { promise, cancel: () => task.cancel() };
+    return { promise, cancel: () => xhr.abort() };
 }

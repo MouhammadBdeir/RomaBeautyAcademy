@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
 import { compressImage, formatBytes } from "@/lib/media/resize";
 import { uploadFile } from "@/lib/media/upload";
 import type { GalleryItem } from "@/lib/media/server";
@@ -24,38 +22,22 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
     const photoInput = useRef<HTMLInputElement>(null);
     const videoInput = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        const q = query(collection(db, "gallery"), orderBy("order", "asc"));
-        const unsub = onSnapshot(
-            q,
-            (snap) =>
-                setItems(
-                    snap.docs.map((d) => {
-                        const x = d.data();
-                        return {
-                            id: d.id,
-                            type: (x.type as GalleryItem["type"]) ?? "image",
-                            url: (x.url as string) ?? "",
-                            path: (x.path as string | undefined) ?? null,
-                            poster: (x.poster as string | undefined) ?? null,
-                            order: (x.order as number | undefined) ?? 0,
-                        };
-                    }),
-                ),
-            () => {},
-        );
-        return () => unsub();
-    }, []);
-
     async function postGallery(payload: { type: "image" | "video"; url: string; path: string }) {
         const res = await fetch("/api/admin/gallery", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-            const d = await res.json().catch(() => ({}));
-            throw new Error(d.error ?? "Speichern fehlgeschlagen.");
+            throw new Error(data.error ?? "Speichern fehlgeschlagen.");
+        }
+        // optimistisch anzeigen, auch ohne Firestore-Live
+        if (typeof data.id === "string") {
+            setItems((prev) => [
+                ...prev,
+                { id: data.id, type: payload.type, url: payload.url, path: payload.path, poster: null, order: prev.length },
+            ]);
         }
     }
 

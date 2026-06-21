@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import CookieConsent from '@/components/CookieConsent';
 
 // In Produktion NEXT_PUBLIC_SITE_URL setzen (z. B. https://www.romabeautyacademy.de).
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
@@ -24,7 +25,10 @@ export default function RootLayout({
 }) {
     return (
         <html lang="de">
-        <body>{children}</body>
+        <body>
+        {children}
+        <CookieConsent />
+        </body>
         </html>
     );
 }

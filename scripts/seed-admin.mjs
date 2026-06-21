@@ -1,7 +1,6 @@
-// Legt den Owner-Admin an bzw. aktualisiert ihn:
-//   E-Mail:   bdeiromar97@gmail.com
-//   Passwort: 12345678
-//   Claims:   { admin: true, owner: true }
+// Legt den Owner-Admin an bzw. aktualisiert ihn (Claims: admin + owner).
+// E-Mail und Passwort kommen aus den Umgebungsvariablen:
+//   SEED_ADMIN_EMAIL (oder ADMIN_OWNER_EMAIL) und SEED_ADMIN_PASSWORD
 //
 // Aufruf:  npm run seed:admin
 //
@@ -33,8 +32,15 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
-const EMAIL = "bdeiromar97@gmail.com";
-const PASSWORD = "12345678";
+const EMAIL = process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_OWNER_EMAIL || "";
+const PASSWORD = process.env.SEED_ADMIN_PASSWORD || "";
+
+if (!EMAIL || !PASSWORD) {
+    console.error(
+        "❌ Bitte SEED_ADMIN_EMAIL (oder ADMIN_OWNER_EMAIL) und SEED_ADMIN_PASSWORD in .env.local setzen.",
+    );
+    process.exit(1);
+}
 
 const projectId = process.env.FIREBASE_PROJECT_ID;
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;

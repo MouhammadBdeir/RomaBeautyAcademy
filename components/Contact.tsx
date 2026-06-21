@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 const monthNames = [
@@ -92,8 +93,10 @@ export default function Contact() {
                         )}
                     </div>
 
-                    <button className="
-                        mt-8 px-10 py-4
+                    <Link
+                        href="/booking"
+                        className="
+                        mt-8 inline-block px-10 py-4
                         bg-[#C8A24A]
                         text-black font-medium
                         rounded-full
@@ -102,7 +105,8 @@ export default function Contact() {
                         hover:scale-105
                         hover:shadow-[0_10px_40px_rgba(200,162,74,0.35)]
                         group
-                    ">
+                    "
+                    >
                         {/* shine effect */}
                         <span className="
                             absolute inset-0
@@ -116,7 +120,7 @@ export default function Contact() {
                         <span className="relative z-10">
                             Termin anfragen
                         </span>
-                    </button>
+                    </Link>
 
                 </div>
 

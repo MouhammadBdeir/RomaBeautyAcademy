@@ -1,61 +1,60 @@
 "use client";
 
 import EditableImage from "@/components/media/EditableImage";
-import { useEffect, useRef, useState } from "react";
+import { useContent } from "@/components/media/MediaProvider";
+import { useEffect, useState } from "react";
 
-function useCountUp(end: number, startTrigger: boolean, duration = 1200) {
+function useCountUp(end: number, run: boolean, duration = 1400) {
     const [value, setValue] = useState(0);
 
     useEffect(() => {
-        if (!startTrigger) return;
+        if (!run) return;
 
         let current = 0;
         const stepTime = 16;
-        const steps = duration / stepTime;
+        const steps = Math.max(1, Math.floor(duration / stepTime));
         const increment = end / steps;
 
         const interval = setInterval(() => {
             current += increment;
-
             if (current >= end) {
                 current = end;
                 clearInterval(interval);
             }
-
             setValue(Math.floor(current));
         }, stepTime);
 
         return () => clearInterval(interval);
-    }, [startTrigger, end, duration]);
+    }, [run, end, duration]);
 
     return value;
 }
 
-export default function AboutUs() {
-    const [start, setStart] = useState(false);
-    const hasStarted = useRef(false);
+function StatCounter({ value, suffix }: { value: number; suffix: string }) {
+    const n = useCountUp(value, true);
+    return (
+        <span className="text-[#C8A24A] font-medium">
+            {n}
+            {suffix}
+        </span>
+    );
+}
 
-    const years = useCountUp(5, start);
-    const customers = useCountUp(1000, start);
+export default function AboutUs() {
+    const { about } = useContent();
+    // Steigt bei jedem Sichtbarwerden -> Zähler animieren immer neu von 0.
+    const [runKey, setRunKey] = useState(0);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
             ([entry]) => {
-                if (entry.isIntersecting && !hasStarted.current) {
-                    hasStarted.current = true;
-                    setStart(true);
-                }
+                if (entry.isIntersecting) setRunKey((k) => k + 1);
             },
-            {
-                threshold: 0.3, // früher trigger → zuverlässiger
-                rootMargin: "0px 0px -100px 0px"
-            }
+            { threshold: 0.3, rootMargin: "0px 0px -100px 0px" },
         );
 
         const el = document.getElementById("about");
-
         if (el) observer.observe(el);
-
         return () => {
             if (el) observer.unobserve(el);
         };
@@ -68,41 +67,26 @@ export default function AboutUs() {
 
                 {/* TEXT */}
                 <div className="opacity-0 animate-fadeIn">
+                    <p className="text-[#C8A24A] tracking-[0.25em] uppercase text-sm">{about.eyebrow}</p>
 
-                    <h2 className="text-4xl md:text-5xl font-light text-[#0B0B0B]">
-                        Über <span className="text-[#C8A24A]">uns</span>
-                    </h2>
+                    <h2 className="mt-3 text-4xl md:text-5xl font-light text-[#0B0B0B]">{about.heading}</h2>
 
-                    <p className="mt-6 text-gray-600 leading-relaxed">
-                        Unser Studio steht für moderne, hochwertige Beauty-Behandlungen.
-                    </p>
+                    {about.paragraphs.map((p, i) => (
+                        <p key={i} className="mt-4 text-gray-600 leading-relaxed">{p}</p>
+                    ))}
 
-                    <p className="mt-4 text-gray-600 leading-relaxed">
-                        Wir kombinieren Techniken und Pflege für natürliche Ergebnisse.
-                    </p>
-
-                    <p className="mt-4 text-gray-600 leading-relaxed">
-                        Jede Behandlung wird individuell abgestimmt.
-                    </p>
-
-                    <div className="mt-6 flex gap-6 text-sm text-[#0B0B0B]">
-
-                        <div>
-                            <span className="text-[#C8A24A] font-medium">
-                                {years}+
-                            </span>{" "}
-                            Jahre Erfahrung
-                        </div>
-
-                        <div>
-                            <span className="text-[#C8A24A] font-medium">
-                                {customers}+
-                            </span>{" "}
-                            Kunden
-                        </div>
-
+                    <div className="mt-6 flex flex-wrap gap-8 text-sm text-[#0B0B0B]">
+                        {about.stats.map((s) => (
+                            <div key={s.id}>
+                                {runKey > 0 ? (
+                                    <StatCounter key={`${s.id}-${runKey}`} value={s.value} suffix={s.suffix} />
+                                ) : (
+                                    <span className="text-[#C8A24A] font-medium">0{s.suffix}</span>
+                                )}{" "}
+                                {s.label}
+                            </div>
+                        ))}
                     </div>
-
                 </div>
 
                 {/* IMAGE */}

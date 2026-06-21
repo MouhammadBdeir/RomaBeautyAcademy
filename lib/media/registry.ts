@@ -44,6 +44,12 @@ export const MEDIA_GROUPS: MediaGroup[] = [
         description: "Die Bilder auf der separaten Über-uns-Seite.",
         href: "/about",
     },
+    {
+        id: "branding",
+        title: "Branding",
+        description: "Logo der Website – erscheint oben in der Navigation.",
+        href: "/",
+    },
 ];
 
 export const MEDIA_SLOTS: MediaSlot[] = [
@@ -68,6 +74,9 @@ export const MEDIA_SLOTS: MediaSlot[] = [
     { key: "about_main", group: "about_page", label: "Großes Bild", where: "Oberes großes Bild der About-Seite.", recommended: "1200 × 600 px", aspect: "2/1", defaultUrl: "https://images.unsplash.com/photo-1522337660859-02fbefca4702" },
     { key: "about_2", group: "about_page", label: "Kleines Bild (links)", where: "Linkes der beiden kleinen Bilder.", recommended: "600 × 400 px", aspect: "3/2", defaultUrl: "https://images.unsplash.com/photo-1526045478516-99145907023c" },
     { key: "about_3", group: "about_page", label: "Kleines Bild (rechts)", where: "Rechtes der beiden kleinen Bilder.", recommended: "600 × 400 px", aspect: "3/2", defaultUrl: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f" },
+
+    // Branding
+    { key: "logo", group: "branding", label: "Logo", where: "Oben links in der Navigation – ersetzt den Schriftzug.", recommended: "240 × 80 px · transparentes PNG", aspect: "3/1", defaultUrl: "" },
 ];
 
 export const DEFAULT_IMAGE_BY_KEY: Record<string, string> = Object.fromEntries(

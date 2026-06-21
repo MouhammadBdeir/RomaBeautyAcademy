@@ -8,7 +8,9 @@ import { auth } from "@/lib/firebase/client";
 
 const LINKS = [
     { href: "/admin", label: "Dashboard" },
+    { href: "/admin/bookings", label: "Buchungen" },
     { href: "/admin/media", label: "Medien" },
+    { href: "/admin/contact", label: "Kontakt" },
 ];
 
 export default function AdminNav() {

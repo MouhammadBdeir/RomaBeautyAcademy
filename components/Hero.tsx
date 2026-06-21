@@ -2,8 +2,11 @@
 
 import { motion } from "framer-motion";
 import EditableImage from "@/components/media/EditableImage";
+import { useContent } from "@/components/media/MediaProvider";
+import Link from "next/link";
 
 export default function Hero() {
+    const { hero } = useContent();
     return (
         <section id="home" className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
 
@@ -32,25 +35,25 @@ export default function Hero() {
             >
 
                 <p className="text-[#C8A24A] tracking-[0.3em] uppercase text-sm">
-                    Luxury Beauty Studio
+                    {hero.eyebrow}
                 </p>
 
                 <h1 className="mt-6 text-5xl md:text-7xl font-light leading-tight text-white">
-                    Schönheit in ihrer <br /> reinsten Form
+                    {hero.heading}
                 </h1>
 
                 <p className="mt-6 text-white/80 text-lg max-w-2xl mx-auto">
-                    Premium Kosmetik mit Fokus auf natürliche Eleganz und Glow.
+                    {hero.subtitle}
                 </p>
 
                 {/* BUTTONS */}
                 <div className="mt-10 flex justify-center gap-4">
-                    <a href="#contact" className="px-8 py-4 bg-[#C8A24A] text-black rounded-full hover:scale-105 transition">
-                        Termin buchen
-                    </a>
+                    <Link href="/booking" className="px-8 py-4 bg-[#C8A24A] text-black rounded-full hover:scale-105 transition">
+                        {hero.primary}
+                    </Link>
 
                     <a href="#services" className="px-8 py-4 border border-white/40 text-white rounded-full hover:bg-white/10 transition">
-                        Mehr erfahren
+                        {hero.secondary}
                     </a>
                 </div>
 

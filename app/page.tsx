@@ -10,20 +10,22 @@ import GalleryLive from "@/components/media/GalleryLive";
 import { MediaProvider } from "@/components/media/MediaProvider";
 import { SectionsProvider, SectionGate } from "@/components/media/SectionsProvider";
 import { getSiteImages, getGallery, getSections } from "@/lib/media/server";
+import { getContent } from "@/lib/content/server";
 
 // Inhalte kommen aus Firestore -> pro Request frisch; client-seitig hält
 // onSnapshot Bilder, Galerie und Sektions-Sichtbarkeit zusätzlich in Echtzeit.
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-    const [images, gallery, sections] = await Promise.all([
+    const [images, gallery, sections, content] = await Promise.all([
         getSiteImages(),
         getGallery(),
         getSections(),
+        getContent(),
     ]);
 
     return (
-        <MediaProvider initial={images}>
+        <MediaProvider initial={images} initialContent={content}>
             <SectionsProvider initial={sections}>
                 <main className="bg-[#F7F3EE] text-[#0B0B0B]">
                     <Navbar />

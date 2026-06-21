@@ -2,34 +2,36 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
 import type { GalleryItem } from "@/lib/media/server";
-
-function mapDoc(id: string, x: Record<string, unknown>): GalleryItem {
-    return {
-        id,
-        type: (x.type as GalleryItem["type"]) ?? "image",
-        url: (x.url as string) ?? "",
-        path: (x.path as string | undefined) ?? null,
-        poster: (x.poster as string | undefined) ?? null,
-        order: (x.order as number | undefined) ?? 0,
-    };
-}
 
 export default function GalleryLive({ initial = [] }: { initial?: GalleryItem[] }) {
     const [items, setItems] = useState<GalleryItem[]>(initial);
 
     useEffect(() => {
-        const q = query(collection(db, "gallery"), orderBy("order", "asc"));
-        const unsub = onSnapshot(
-            q,
-            (snap) => setItems(snap.docs.map((d) => mapDoc(d.id, d.data() as Record<string, unknown>))),
-            () => {
-                /* Fehler ignorieren – zeigt dann den Initialwert. */
-            },
-        );
-        return () => unsub();
+        let active = true;
+        let timer: ReturnType<typeof setTimeout>;
+
+        const tick = async () => {
+            try {
+                const res = await fetch("/api/site-state", { cache: "no-store" });
+                if (active && res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data?.gallery)) setItems(data.gallery as GalleryItem[]);
+                }
+            } catch {
+                /* ignorieren */
+            }
+            if (active) {
+                const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+                timer = setTimeout(tick, hidden ? 20000 : 4000);
+            }
+        };
+
+        tick();
+        return () => {
+            active = false;
+            clearTimeout(timer);
+        };
     }, []);
 
     return (

@@ -5,14 +5,16 @@ import Image from "next/image";
 import { HOME_SECTIONS, type HomeSection } from "@/lib/sections";
 import { MEDIA_GROUPS, MEDIA_SLOTS, type MediaSlot } from "@/lib/media/registry";
 import { useMediaUrl } from "@/components/media/MediaProvider";
-import { useSectionVisible } from "@/components/media/SectionsProvider";
+import { useSectionVisible, useSetSectionVisible } from "@/components/media/SectionsProvider";
 import type { GalleryItem } from "@/lib/media/server";
+import { DEFAULT_CONTENT, type SiteContent } from "@/lib/content/types";
 import ImageSlotManager from "./ImageSlotManager";
 import GalleryManager from "./GalleryManager";
+import SectionContentEditor from "./SectionContentEditor";
 
 type Entry =
     | { kind: "home"; section: HomeSection }
-    | { kind: "page"; id: string; label: string; description: string; groupId: string };
+    | { kind: "page"; id: string; label: string; description: string; groupId: string; href: string };
 
 const ABOUT_PAGE_ENTRY = {
     kind: "page" as const,
@@ -20,19 +22,47 @@ const ABOUT_PAGE_ENTRY = {
     label: "Seite: Über uns",
     description: "Bilder der separaten Über-uns-Seite (/about).",
     groupId: "about_page",
+    href: "/about",
 };
+
+const BRANDING_ENTRY = {
+    kind: "page" as const,
+    id: "branding",
+    label: "Logo / Branding",
+    description: "Logo der Website – erscheint oben in der Navigation.",
+    groupId: "branding",
+    href: "/",
+};
+
+const PAGE_ENTRIES = [ABOUT_PAGE_ENTRY, BRANDING_ENTRY];
 
 function firstSlotKey(groupId: string): string | null {
     return MEDIA_SLOTS.find((s) => s.group === groupId)?.key ?? null;
 }
 
-export default function MediaWorkspace({ gallery }: { gallery: GalleryItem[] }) {
+const CONTENT_KINDS: Record<string, "hero" | "services" | "whyus" | "testimonials" | "about"> = {
+    hero: "hero",
+    services: "services",
+    whyus: "whyus",
+    testimonials: "testimonials",
+    about: "about",
+};
+
+export default function MediaWorkspace({
+    gallery,
+    initialContent,
+}: {
+    gallery: GalleryItem[];
+    initialContent?: SiteContent;
+}) {
     const [selected, setSelected] = useState<string>("hero");
+    const [content, setContent] = useState<SiteContent>(initialContent ?? DEFAULT_CONTENT);
 
     const current: Entry =
-        selected === ABOUT_PAGE_ENTRY.id
-            ? ABOUT_PAGE_ENTRY
-            : { kind: "home", section: HOME_SECTIONS.find((s) => s.id === selected) ?? HOME_SECTIONS[0] };
+        PAGE_ENTRIES.find((e) => e.id === selected) ?? {
+            kind: "home",
+            section: HOME_SECTIONS.find((s) => s.id === selected) ?? HOME_SECTIONS[0],
+        };
 
     return (
         <div className="grid lg:grid-cols-[300px_1fr] gap-6">
@@ -50,23 +80,28 @@ export default function MediaWorkspace({ gallery }: { gallery: GalleryItem[] }) 
                     ))}
                 </div>
 
-                <p className="mb-2 mt-5 text-xs uppercase tracking-wide text-gray-400">Weitere Seiten</p>
-                <button
-                    onClick={() => setSelected(ABOUT_PAGE_ENTRY.id)}
-                    className={`w-full rounded-xl border bg-white p-3 text-left transition ${
-                        selected === ABOUT_PAGE_ENTRY.id
-                            ? "border-[#C8A24A] ring-1 ring-[#C8A24A]"
-                            : "border-black/10 hover:border-[#C8A24A]/50"
-                    }`}
-                >
-                    <p className="text-sm font-medium text-[#0B0B0B]">{ABOUT_PAGE_ENTRY.label}</p>
-                    <p className="text-xs text-gray-500">separate Seite</p>
-                </button>
+                <p className="mb-2 mt-5 text-xs uppercase tracking-wide text-gray-400">Weitere</p>
+                <div className="space-y-2">
+                    {PAGE_ENTRIES.map((e) => (
+                        <button
+                            key={e.id}
+                            onClick={() => setSelected(e.id)}
+                            className={`w-full rounded-xl border bg-white p-3 text-left transition ${
+                                selected === e.id
+                                    ? "border-[#C8A24A] ring-1 ring-[#C8A24A]"
+                                    : "border-black/10 hover:border-[#C8A24A]/50"
+                            }`}
+                        >
+                            <p className="text-sm font-medium text-[#0B0B0B]">{e.label}</p>
+                            <p className="text-xs text-gray-500">{e.id === "branding" ? "Logo" : "separate Seite"}</p>
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* RECHTS: Detail der gewählten Sektion */}
             <div>
-                <Detail entry={current} gallery={gallery} />
+                <Detail entry={current} gallery={gallery} content={content} onContentChange={setContent} />
             </div>
         </div>
     );
@@ -82,18 +117,30 @@ function SectionRow({
     onSelect: () => void;
 }) {
     const visible = useSectionVisible(section.id);
+    const setLocal = useSetSectionVisible();
     const [busy, setBusy] = useState(false);
+    const [err, setErr] = useState(false);
     const thumbKey = section.media.kind === "group" ? firstSlotKey(section.media.groupId) : null;
 
     async function toggle(e: React.MouseEvent) {
         e.stopPropagation();
+        const next = !visible;
         setBusy(true);
-        await fetch("/api/admin/sections", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: section.id, visible: !visible }),
-        }).catch(() => {});
-        setBusy(false);
+        setErr(false);
+        setLocal(section.id, next); // sofortige optimistische Reaktion
+        try {
+            const res = await fetch("/api/admin/sections", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: section.id, visible: next }),
+            });
+            if (!res.ok) throw new Error();
+        } catch {
+            setLocal(section.id, visible); // bei Fehler zurückrollen
+            setErr(true);
+        } finally {
+            setBusy(false);
+        }
     }
 
     return (
@@ -115,7 +162,9 @@ function SectionRow({
 
             <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-[#0B0B0B]">{section.label}</p>
-                <p className="truncate text-xs text-gray-500">{visible ? "Sichtbar" : "Ausgeblendet"}</p>
+                <p className={`truncate text-xs ${err ? "text-red-600" : "text-gray-500"}`}>
+                    {err ? "Fehler – erneut versuchen" : visible ? "Sichtbar" : "Ausgeblendet"}
+                </p>
             </div>
 
             <button
@@ -142,11 +191,21 @@ function Thumb({ keyName }: { keyName: string }) {
     return <Image src={url} alt="" fill sizes="64px" unoptimized className="object-cover" />;
 }
 
-function Detail({ entry, gallery }: { entry: Entry; gallery: GalleryItem[] }) {
+function Detail({
+    entry,
+    gallery,
+    content,
+    onContentChange,
+}: {
+    entry: Entry;
+    gallery: GalleryItem[];
+    content: SiteContent;
+    onContentChange: (c: SiteContent) => void;
+}) {
     if (entry.kind === "page") {
         return (
             <div>
-                <DetailHeader title={entry.label} description={entry.description} href="/about" />
+                <DetailHeader title={entry.label} description={entry.description} href={entry.href} />
                 <SlotGrid slots={MEDIA_SLOTS.filter((s) => s.group === entry.groupId)} />
             </div>
         );
@@ -156,13 +215,15 @@ function Detail({ entry, gallery }: { entry: Entry; gallery: GalleryItem[] }) {
     const media = section.media;
     const group = media.kind === "group" ? MEDIA_GROUPS.find((g) => g.id === media.groupId) : null;
     const href = media.kind === "gallery" ? "/#gallery" : group?.href;
+    const contentKind = CONTENT_KINDS[section.id];
 
     return (
         <div>
             <DetailHeader title={section.label} description={section.description} href={href} />
+            {contentKind && <SectionContentEditor kind={contentKind} value={content} onChange={onContentChange} />}
             {media.kind === "group" && <SlotGrid slots={MEDIA_SLOTS.filter((s) => s.group === media.groupId)} />}
             {media.kind === "gallery" && <GalleryManager initial={gallery} />}
-            {media.kind === "none" && (
+            {media.kind === "none" && !contentKind && (
                 <p className="rounded-2xl border border-black/10 bg-white p-6 text-sm text-gray-500">
                     Diese Sektion hat keine bearbeitbaren Bilder. Über den Schalter links kannst du sie ein- oder
                     ausblenden.

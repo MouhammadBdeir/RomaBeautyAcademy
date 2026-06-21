@@ -12,6 +12,7 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
     const inputRef = useRef<HTMLInputElement>(null);
 
     const [preview, setPreview] = useState<string | null>(null);
+    const [savedUrl, setSavedUrl] = useState<string | null>(null);
     const [progress, setProgress] = useState<number | null>(null);
     const [status, setStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
                 const d = await res.json().catch(() => ({}));
                 throw new Error(d.error ?? "Speichern fehlgeschlagen.");
             }
+            setSavedUrl(url); // sofort anzeigen, auch ohne Firestore-Live
             setStatus("Gespeichert ✓");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Upload fehlgeschlagen.");
@@ -73,6 +75,7 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
                 const d = await res.json().catch(() => ({}));
                 throw new Error(d.error ?? "Zurücksetzen fehlgeschlagen.");
             }
+            setSavedUrl(null);
             setStatus("Auf Standard zurückgesetzt ✓");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Fehler.");
@@ -81,7 +84,7 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
         }
     }
 
-    const shown = preview ?? currentUrl;
+    const shown = preview ?? savedUrl ?? currentUrl;
 
     return (
         <div className="rounded-2xl border border-black/10 bg-white p-4">

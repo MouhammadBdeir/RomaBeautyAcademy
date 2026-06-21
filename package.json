@@ -8,7 +8,8 @@
     "start": "next start",
     "start_app": "npm run dev",
     "lint": "eslint",
-    "seed:admin": "node scripts/seed-admin.mjs"
+    "seed:admin": "node scripts/seed-admin.mjs",
+    "deploy:rules": "node scripts/deploy-rules.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

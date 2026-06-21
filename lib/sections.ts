@@ -15,7 +15,7 @@ export type HomeSection = {
 
 export const HOME_SECTIONS: HomeSection[] = [
     { id: "hero", label: "Hero", description: "Großer Kopfbereich ganz oben.", media: { kind: "group", groupId: "hero" } },
-    { id: "services", label: "Services", description: "Die sechs Behandlungs-Karten.", media: { kind: "group", groupId: "services" } },
+    { id: "services", label: "Services", description: "Behandlungen mit eigener Detailseite – Texte, Bilder und neue Services im Editor.", media: { kind: "none" } },
     { id: "whyus", label: "Warum wir", description: "Vier Vorteils-Kacheln.", media: { kind: "none" } },
     { id: "gallery", label: "Galerie", description: "Unsere Arbeiten – Fotos & Videos.", media: { kind: "gallery" } },
     { id: "testimonials", label: "Bewertungen", description: "Kundenstimmen.", media: { kind: "none" } },
