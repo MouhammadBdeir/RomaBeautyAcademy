@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Website-Bilder: öffentlich lesbar, nur Admin upload/delete.
+    // Max. 8 MB, nur Bild-MIME-Typen. SVG wird verboten, weil SVG-Dateien
+    // beliebigen JavaScript-Code enthalten können (XSS beim direkten Aufruf
+    // der Storage-URL im Browser).
+    match /website-images/{file=**} {
+      allow read: if true;
+      allow write: if isAdmin()
+                   && request.resource.size < 8 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*')
+                   && !request.resource.contentType.matches('image/svg.*');
+    }
+
+    // Service-Bilder: pro Service (Slug) ein Unterordner. Selbe Limits wie
+    // website-images. Hero + Block-Galerie-Bilder landen hier.
+    match /services/{slug}/{file=**} {
+      allow read: if true;
+      allow write: if isAdmin()
+                   && request.resource.size < 8 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*')
+                   && !request.resource.contentType.matches('image/svg.*');
+    }
+
+    // Alles andere gesperrt.
+    match /{file=**} {
+      allow read, write: if false;
+    }
+  }
+}
