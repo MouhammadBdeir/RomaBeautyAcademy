@@ -47,6 +47,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+    // firebase-admin (Node-only) nicht bundeln -> vermeidet ESM/CJS-Konflikte (jose).
+    serverExternalPackages: ['firebase-admin'],
     images: {
         remotePatterns: [
             { protocol: 'https', hostname: 'via.placeholder.com' },
