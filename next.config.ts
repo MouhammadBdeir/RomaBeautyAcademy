@@ -22,6 +22,8 @@ const csp = [
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googleapis.com https://www.gstatic.com https://apis.google.com https://www.google.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https://firebasestorage.googleapis.com https://images.unsplash.com https://via.placeholder.com https://*.googleusercontent.com",
+    // Hochgeladene Galerie-Videos liegen in Firebase Storage.
+    "media-src 'self' blob: https://firebasestorage.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebasestorage.googleapis.com https://www.google.com wss://*.firebaseio.com",
     `frame-src ${frameSrc} https://www.google.com`,

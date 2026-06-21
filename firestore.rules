@@ -1,5 +1,6 @@
 rules_version = '2';
 
+// Rules für RomaBeautyAcademy.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -10,170 +11,32 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.admin == true;
     }
 
-    // Erlaubte Image-Keys für config/websiteImages — hartcodierte Allowlist,
-    // damit ein kompromittierter Admin-Browser keine beliebigen Keys einschleust.
-    function allowedImageKeys() {
-      return [
-        'home_logo', 'home_hero',
-        'about_hero', 'about_image', 'process_image',
-        'contact_hero',
-        'dienstleistungen_hero',
-        'agb_hero', 'datenschutz_hero', 'impressum_hero',
-        'baustellen_hero', 'brandwache_hero', 'objektschutz_hero',
-        'veranstaltung_hero', 'personenschutz_hero', 'mobiler_hero',
-        'unterkuenfte_hero'
-      ];
-    }
-
-    // Kontaktanfragen — nur Admin darf lesen/löschen.
-    // Anlegen NUR über die API-Route (/api/send-inquiry mit Admin-SDK).
-    // UPDATE auf Field-Level beschränkt: nur 'read' und 'archived' dürfen
-    // verändert werden — Inhalte (Name, Email, IP, createdAt) bleiben
-    // immutable als Audit-Spur.
-    // Kontaktanfragen — nur Admin darf lesen/löschen.
-    // Anlegen NUR über die API-Route (/api/send-inquiry mit Admin-SDK).
-    // UPDATE auf Field-Level beschränkt: aus dem Browser dürfen nur 'read'
-    // und 'archived' verändert werden — alle übrigen Felder (Inhalt, IP,
-    // createdAt, lastRepliedAt, repliedCount, lastRepliedBy) bleiben aus
-    // dem Browser immutable und werden ausschließlich vom Admin-SDK
-    // (Server-Side Reply-Route) geschrieben.
-    match /inquiries/{doc} {
-      allow read: if isAdmin();
-      allow delete: if isAdmin();
-      allow update: if isAdmin()
-                    && request.resource.data.diff(resource.data).affectedKeys()
-                       .hasOnly(['read', 'archived']);
-      allow create: if false;
-    }
-
-    // Pending-Admins — kompletter Lock-down. Wird nur via Admin-SDK
-    // (Register-Route + Approval-Route) angefasst.
-    match /pendingAdmins/{doc} {
+    // Freigabe-Anfragen für neue Admins: nur Admin-SDK (Server). Client gesperrt.
+    match /pendingAdmins/{uid} {
       allow read, write: if false;
     }
 
-    // Website-Bilder — öffentlich lesbar, nur Admin schreibt.
-    // Field-Level: nur Keys aus allowedImageKeys() erlaubt. Werte können vom
-    // Code nicht streng validiert werden (Firestore-Rules unterstützen keine
-    // List-Iteration für Regex pro Wert) — Browser-CSP (img-src) wirkt als
-    // zweite Schranke gegen fremde Hosts.
-    match /config/websiteImages {
+    // Bild-Konfiguration der Website. Öffentlich lesbar (Echtzeit per onSnapshot),
+    // Schreiben ausschließlich über das Admin-SDK (server-seitige Routen).
+    match /config/siteImages {
       allow read: if true;
-      allow write: if isAdmin()
-                   && request.resource.data.keys().hasOnly(allowedImageKeys());
+      allow write: if false;
     }
 
-    // Kontaktdaten (Adresse, Telefon, E-Mail, Rechtliche Angaben, Social-Media).
-    // Öffentlich lesbar (Footer + Detail-Seiten benötigen das). Admin schreibt.
-    // Field-Level: nur die definierten Keys erlaubt (verhindert Schemaverschmutzung
-    // durch kompromittierten Admin-Browser).
-    match /config/contactData {
+    // Sichtbarkeit der Startseiten-Sektionen. Öffentlich lesbar (Echtzeit),
+    // Schreiben nur über das Admin-SDK.
+    match /config/sections {
       allow read: if true;
-      allow write: if isAdmin()
-                   && request.resource.data.keys().hasOnly([
-                        'street', 'zip', 'city', 'country',
-                        'phoneDisplay', 'phoneHref',
-                        'email',
-                        'hrb', 'vatId',
-                        'socialLinkedinUrl', 'socialLinkedinEnabled',
-                        'socialFacebookUrl', 'socialFacebookEnabled',
-                        'socialInstagramUrl', 'socialInstagramEnabled',
-                        'socialXingUrl', 'socialXingEnabled'
-                      ]);
+      allow write: if false;
     }
 
-    // Dienstleistungs-Seiten (dynamisch). Öffentlich lesbar (für /dienstleistungen/[slug]),
-    // Admin schreibt CRUD-mäßig. Doc-ID = Slug (URL-Pfad).
-    match /services/{slug} {
+    // Galerie-Einträge (Foto/Video). Öffentlich lesbar, Schreiben nur Admin-SDK.
+    match /gallery/{id} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow write: if false;
     }
 
-    // Wartungsmodus — wenn enabled=true zeigen Public-Pages ein Overlay.
-    match /config/maintenance {
-      allow read: if true;
-      allow write: if isAdmin()
-                   && request.resource.data.keys().hasOnly(['enabled', 'message'])
-                   && request.resource.data.enabled is bool
-                   && request.resource.data.message is string;
-    }
-
-    // Navbar-Layout-Variante — gilt site-weit. Strict-Format gegen Style-Injection.
-    match /config/navVariant {
-      allow read: if true;
-      allow write: if isAdmin()
-                   && request.resource.data.keys().hasOnly(['variant'])
-                   && request.resource.data.variant in ['classic', 'floating', 'glass', 'bold'];
-    }
-
-    // Startseiten-Content — Texte + Layout-Varianten je Sektion.
-    // Öffentlich lesbar, Admin schreibt. Wir validieren NUR die Top-Level-
-    // Keys (hero/services/whyUs/...). Innerhalb der Map sind beliebige
-    // Strings erlaubt — der Client merge'd mit DEFAULT_HOME_CONTENT, sodass
-    // Felder, die nicht zu unserem Schema passen, ignoriert werden.
-    match /config/homeContent {
-      allow read: if true;
-      allow write: if isAdmin()
-                   && request.resource.data.keys().hasOnly([
-                        'hero', 'services', 'whyUs', 'howItWorks', 'aboutUs', 'contact'
-                      ]);
-    }
-
-    // Startseiten-Sektionen-Sichtbarkeit — öffentlich lesbar, Admin schreibt.
-    // Field-Level: nur die definierten Section-Keys, nur Boolean-Werte
-    // werden serverseitig zwar nicht erzwungen (Firestore-Rules können
-    // keinen Typcheck auf Map-Values), aber der Client schreibt nur Booleans.
-    match /config/homeSections {
-      allow read: if true;
-      allow write: if isAdmin()
-                   && request.resource.data.keys().hasOnly([
-                        'hero', 'services', 'whyUs', 'howItWorks', 'aboutUs', 'contact'
-                      ]);
-    }
-
-    // Branding (Logo-Größen + globale Schrift-Skalierung). Öffentlich lesbar,
-    // Admin schreibt. Hard-Limits gegen versehentliche / böswillige Eingaben,
-    // die das Layout zerstören würden.
-    match /config/branding {
-      allow read: if true;
-      allow write: if isAdmin()
-                   && request.resource.data.keys().hasOnly(['logoHeight', 'logoHeightFooter', 'fontScale'])
-                   && request.resource.data.logoHeight is number
-                   && request.resource.data.logoHeight >= 24
-                   && request.resource.data.logoHeight <= 120
-                   && request.resource.data.logoHeightFooter is number
-                   && request.resource.data.logoHeightFooter >= 24
-                   && request.resource.data.logoHeightFooter <= 120
-                   && request.resource.data.fontScale is number
-                   && request.resource.data.fontScale >= 0.85
-                   && request.resource.data.fontScale <= 1.25;
-    }
-
-    // Brand-Theme (6 Farben) — öffentlich lesbar, Admin schreibt.
-    // Field-Level: nur die definierten Keys. Strict-Hex-Validierung via Regex
-    // gegen Style-Injection (CSS-Expressions etc.).
-    match /config/theme {
-      allow read: if true;
-      allow write: if isAdmin()
-                   && request.resource.data.keys().hasOnly([
-                        'brand', 'brandDark', 'brandText', 'brandMuted',
-                        'brandBg', 'brandNight', 'brandSurface'
-                      ])
-                   && request.resource.data.brand.matches('^#[0-9A-Fa-f]{6}$')
-                   && request.resource.data.brandDark.matches('^#[0-9A-Fa-f]{6}$')
-                   && request.resource.data.brandText.matches('^#[0-9A-Fa-f]{6}$')
-                   && request.resource.data.brandMuted.matches('^#[0-9A-Fa-f]{6}$')
-                   && request.resource.data.brandBg.matches('^#[0-9A-Fa-f]{6}$')
-                   && request.resource.data.brandNight.matches('^#[0-9A-Fa-f]{6}$')
-                   && request.resource.data.brandSurface.matches('^#[0-9A-Fa-f]{6}$');
-    }
-
-    // Alle anderen config-Dokumente (z. B. externalCosts) — nur Admin.
-    match /config/{doc} {
-      allow read, write: if isAdmin();
-    }
-
-    // Default: nichts erlaubt.
+    // Default: alles gesperrt.
     match /{document=**} {
       allow read, write: if false;
     }

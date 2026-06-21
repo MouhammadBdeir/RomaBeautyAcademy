@@ -8,11 +8,9 @@ export default function Loading() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--brand-surface)]"
         >
             <div className="flex flex-col items-center gap-6">
-                <img
-                    src="/next.svg"
-                    alt=""
-                    className="h-14 sm:h-16 w-auto opacity-90"
-                />
+                <div className="tracking-[0.25em] font-bold text-lg sm:text-xl">
+                    <span className="text-[var(--brand)] font-medium">RomaBeauty</span>Academy
+                </div>
 
                 <div className="relative w-12 h-12">
                     <div className="absolute inset-0 rounded-full border-4 border-[var(--brand)]/20" />

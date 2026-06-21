@@ -1,1 +1,38 @@
 @import "tailwindcss";
+
+/* Brand-Tokens — zentrale Design-Farben, in Komponenten via var(--brand) nutzbar */
+:root {
+    --brand: #c8a24a;        /* Gold-Akzent */
+    --brand-surface: #f7f3ee; /* heller Hintergrund */
+    --brand-text: #0b0b0b;   /* Text (near-black) */
+}
+
+body {
+    background: var(--brand-surface);
+    color: var(--brand-text);
+}
+html {
+    scroll-behavior: smooth;
+}
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.8s ease-out forwards;
+}
+
+.delay-150 {
+    animation-delay: 0.15s;
+}
+
+.delay-300 {
+    animation-delay: 0.3s;
+}
