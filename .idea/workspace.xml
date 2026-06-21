@@ -4,57 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="54016a21-a405-4c1a-a22d-af0f1a4296a3" name="Changes" comment="create new template">
-      <change afterPath="$PROJECT_DIR$/app/admin/bookings/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/admin/contact/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/agb/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/admin/bookings/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/admin/contact/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/admin/upload/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/booking/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/site-state/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/datenschutz/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/impressum/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/CookieConsent.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/LegalPage.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/admin/BookingsManager.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/admin/ContactEditor.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/booking/BookingForm.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/bookings/server.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/bookings/types.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/contact/server.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/contact/types.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/holidays.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/scripts/deploy-rules.mjs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/admin/media/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/media/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/booking/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/booking/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/AboutUs.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/AboutUs.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/Contact.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Contact.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/Footer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Footer.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/Hero.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Hero.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/Navbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Navbar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/Services.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Services.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/Testimonials.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Testimonials.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/WhyUs.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/WhyUs.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/admin/AdminNav.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/admin/AdminNav.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/admin/GalleryManager.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/admin/GalleryManager.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/admin/ImageSlotManager.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/admin/ImageSlotManager.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/admin/MediaWorkspace.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/admin/MediaWorkspace.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/media/GalleryLive.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/media/GalleryLive.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/media/MediaProvider.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/media/MediaProvider.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/media/SectionsProvider.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/media/SectionsProvider.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/firestore.rules" beforeDir="false" afterPath="$PROJECT_DIR$/firestore.rules" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/email.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/email.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/media/registry.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/media/registry.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/media/upload.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/media/upload.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/sections.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/sections.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/next.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-    </list>
+    <list default="true" id="54016a21-a405-4c1a-a22d-af0f1a4296a3" name="Changes" comment="create new template" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -152,7 +102,7 @@
       <workItem from="1782005723189" duration="367000" />
       <workItem from="1782006200973" duration="39000" />
       <workItem from="1782006391226" duration="7786000" />
-      <workItem from="1782051494872" duration="7719000" />
+      <workItem from="1782051494872" duration="8353000" />
     </task>
     <task id="LOCAL-00001" summary="create new template">
       <option name="closed" value="true" />
