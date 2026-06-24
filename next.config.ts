@@ -17,16 +17,21 @@ const frameSrc = authDomain ? `https://${authDomain}` : 'https://*.firebaseapp.c
 // TODO(security): Auf nonce-/hash-basierte CSP migrieren, sobald Next.js 16's
 //   neue 'proxy'-Konvention dokumentiert hat, wie Nonces auf ALLE Inline-Scripts
 //   automatisch verteilt werden.
+// Auf Vercel-Preview lädt die Vercel-Live-Feedback-Toolbar Skripte von
+// vercel.live (+ Pusher). Nur dort erlauben – in Produktion bleibt die CSP eng.
+const vercelLive = process.env.VERCEL_ENV !== 'production';
+const live = (extra: string) => (vercelLive ? ` ${extra}` : '');
+
 const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googleapis.com https://www.gstatic.com https://apis.google.com https://www.google.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https://firebasestorage.googleapis.com https://images.unsplash.com https://via.placeholder.com https://*.googleusercontent.com",
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googleapis.com https://www.gstatic.com https://apis.google.com https://www.google.com${live('https://vercel.live')}`,
+    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com${live('https://vercel.live')}`,
+    `img-src 'self' data: blob: https://firebasestorage.googleapis.com https://images.unsplash.com https://via.placeholder.com https://*.googleusercontent.com${live('https://vercel.live https://vercel.com')}`,
     // Hochgeladene Galerie-Videos liegen in Firebase Storage.
     "media-src 'self' blob: https://firebasestorage.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebasestorage.googleapis.com https://www.google.com wss://*.firebaseio.com",
-    `frame-src ${frameSrc} https://www.google.com https://maps.google.com`,
+    `font-src 'self' data: https://fonts.gstatic.com${live('https://vercel.live https://assets.vercel.com')}`,
+    `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebasestorage.googleapis.com https://www.google.com wss://*.firebaseio.com${live('https://vercel.live https://*.pusher.com wss://*.pusher.com')}`,
+    `frame-src ${frameSrc} https://www.google.com https://maps.google.com${live('https://vercel.live')}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
