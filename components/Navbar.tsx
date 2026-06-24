@@ -9,16 +9,26 @@ export default function Navbar() {
     const [logo, setLogo] = useState("");
 
     useEffect(() => {
-        const handleScroll = () => {
-            const scrollTop = window.scrollY;
-            const docHeight =
-                document.documentElement.scrollHeight - window.innerHeight;
-
-            setScrollProgress((scrollTop / docHeight) * 100);
+        let raf = 0;
+        const update = () => {
+            raf = 0;
+            const el = document.documentElement;
+            const max = el.scrollHeight - el.clientHeight;
+            const p = max > 0 ? window.scrollY / max : 0;
+            setScrollProgress(p < 0 ? 0 : p > 1 ? 1 : p);
         };
-
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
+        // Pro Frame nur einmal aktualisieren -> flüssig, ohne Verzögerung.
+        const onScroll = () => {
+            if (!raf) raf = requestAnimationFrame(update);
+        };
+        update();
+        window.addEventListener("scroll", onScroll, { passive: true });
+        window.addEventListener("resize", onScroll, { passive: true });
+        return () => {
+            window.removeEventListener("scroll", onScroll);
+            window.removeEventListener("resize", onScroll);
+            if (raf) cancelAnimationFrame(raf);
+        };
     }, []);
 
     // Logo aus den Medien-Daten (live, ohne Rules).
@@ -49,11 +59,11 @@ export default function Navbar() {
 
     return (
         <>
-            {/* 🔥 SCROLL LINE */}
-            <div className="fixed top-0 left-0 w-full h-[8px] bg-transparent z-[60]">
+            {/* SCROLL LINE – ohne Transition, direkt am Scroll (GPU-Transform) */}
+            <div className="fixed top-0 left-0 w-full h-[6px] bg-transparent z-[60]">
                 <div
-                    className="h-full bg-[#C8A24A] transition-all duration-150"
-                    style={{ width: `${scrollProgress}%` }}
+                    className="h-full w-full origin-left bg-[#C8A24A] will-change-transform"
+                    style={{ transform: `scaleX(${scrollProgress})` }}
                 />
             </div>
 

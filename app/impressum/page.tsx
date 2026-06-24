@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/LegalPage";
 import { getContactData } from "@/lib/contact/server";
+import { guardMaintenance } from "@/lib/settings/server";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ImpressumPage() {
+    await guardMaintenance();
     const c = await getContactData();
     const cityLine = [c.zip, c.city].filter(Boolean).join(" ");
 

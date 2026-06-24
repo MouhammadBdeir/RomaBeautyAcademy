@@ -11,17 +11,23 @@ import { MediaProvider } from "@/components/media/MediaProvider";
 import { SectionsProvider, SectionGate } from "@/components/media/SectionsProvider";
 import { getSiteImages, getGallery, getSections } from "@/lib/media/server";
 import { getContent } from "@/lib/content/server";
+import { getGermanHolidays } from "@/lib/holidays";
+import { getSettings, guardMaintenance } from "@/lib/settings/server";
 
 // Inhalte kommen aus Firestore -> pro Request frisch; client-seitig hält
 // onSnapshot Bilder, Galerie und Sektions-Sichtbarkeit zusätzlich in Echtzeit.
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-    const [images, gallery, sections, content] = await Promise.all([
+    await guardMaintenance();
+    const nowYear = new Date().getFullYear();
+    const [images, gallery, sections, content, holidays, settings] = await Promise.all([
         getSiteImages(),
         getGallery(),
         getSections(),
         getContent(),
+        getGermanHolidays([nowYear, nowYear + 1]),
+        getSettings(),
     ]);
 
     return (
@@ -48,7 +54,7 @@ export default async function Home() {
                         <AboutUs />
                     </SectionGate>
                     <SectionGate id="contact">
-                        <Contact />
+                        <Contact holidays={holidays} settings={settings} />
                     </SectionGate>
                     <Footer />
                 </main>

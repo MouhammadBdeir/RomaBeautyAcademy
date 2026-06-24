@@ -42,6 +42,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Dashboard-Benachrichtigungen: ausschließlich über das Admin-SDK (Server).
+    // Das Dashboard liest sie über /api/admin/notifications (Session-Cookie).
+    match /notifications/{id} {
+      allow read, write: if false;
+    }
+
     // Default: alles gesperrt.
     match /{document=**} {
       allow read, write: if false;

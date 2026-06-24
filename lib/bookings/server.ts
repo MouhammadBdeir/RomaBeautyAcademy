@@ -30,8 +30,11 @@ export async function getBookings(): Promise<Booking[]> {
                 date: (x.date as string) ?? "",
                 time: (x.time as string) ?? "",
                 message: (x.message as string) ?? "",
+                service: (x.service as string) ?? "",
+                persons: typeof x.persons === "number" ? x.persons : 1,
                 status: (x.status as BookingStatus) ?? "pending",
                 createdAt: fmtTimestamp(x.createdAt),
+                reminderSentAt: fmtTimestamp(x.reminderSentAt),
             };
         });
     } catch {

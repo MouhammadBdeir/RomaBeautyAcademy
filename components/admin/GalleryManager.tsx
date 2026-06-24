@@ -164,7 +164,7 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
                                 onClick={() => remove(item.id)}
                                 disabled={busy}
                                 aria-label="Löschen"
-                                className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-sm opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
+                                className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition disabled:opacity-50"
                             >
                                 ✕
                             </button>

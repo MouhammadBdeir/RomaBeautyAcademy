@@ -150,7 +150,7 @@ function AboutFields({ value, onChange }: { value: SiteContent; onChange: (c: Si
                 <button onClick={() => set({ stats: [...a.stats, { id: uid(), value: 0, suffix: "+", label: "" }] })} className={addBtn}>+ Zahl</button>
             </div>
             {a.stats.map((s) => (
-                <div key={s.id} className="flex items-end gap-2">
+                <div key={s.id} className="flex flex-wrap items-end gap-2">
                     <label className="block w-20">
                         <span className="text-xs text-gray-500">Wert</span>
                         <input type="number" value={s.value} onChange={(e) => set({ stats: a.stats.map((x) => (x.id === s.id ? { ...x, value: Number(e.target.value) || 0 } : x)) })} className="mt-1 w-full rounded-lg border border-black/10 p-2 text-sm" />
@@ -159,7 +159,7 @@ function AboutFields({ value, onChange }: { value: SiteContent; onChange: (c: Si
                         <span className="text-xs text-gray-500">Zusatz</span>
                         <input value={s.suffix} onChange={(e) => set({ stats: a.stats.map((x) => (x.id === s.id ? { ...x, suffix: e.target.value } : x)) })} className="mt-1 w-full rounded-lg border border-black/10 p-2 text-sm" />
                     </label>
-                    <div className="flex-1">
+                    <div className="min-w-[7rem] flex-1">
                         <Field label="Label" value={s.label} onChange={(v) => set({ stats: a.stats.map((x) => (x.id === s.id ? { ...x, label: v } : x)) })} />
                     </div>
                     <button onClick={() => set({ stats: a.stats.filter((x) => x.id !== s.id) })} className={delBtn}>×</button>

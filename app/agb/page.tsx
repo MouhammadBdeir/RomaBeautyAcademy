@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/LegalPage";
+import { guardMaintenance } from "@/lib/settings/server";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
     title: "AGB — RomaBeautyAcademy",
 };
 
-export default function AgbPage() {
+export default async function AgbPage() {
+    await guardMaintenance();
     return (
         <LegalPage title="Allgemeine Geschäftsbedingungen">
             <h2>§ 1 Geltungsbereich</h2>
