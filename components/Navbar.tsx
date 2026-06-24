@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { isNavbarStyle, type NavbarStyle } from "@/lib/branding/types";
 
 export default function Navbar() {
     const [scrollProgress, setScrollProgress] = useState(0);
     const [open, setOpen] = useState(false);
     const [logo, setLogo] = useState("");
+    const [navbarStyle, setNavbarStyle] = useState<NavbarStyle>("serif");
 
     useEffect(() => {
         let raf = 0;
@@ -41,6 +43,7 @@ export default function Navbar() {
                 if (active && res.ok) {
                     const d = await res.json();
                     setLogo(typeof d?.images?.logo === "string" ? d.images.logo : "");
+                    setNavbarStyle(isNavbarStyle(d?.branding?.navbarStyle) ? d.branding.navbarStyle : "serif");
                 }
             } catch {
                 /* ignorieren */
@@ -86,9 +89,7 @@ export default function Navbar() {
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={logo} alt="RomaBeautyAcademy" className="h-8 md:h-9 w-auto" />
                         ) : (
-                            <span className="tracking-[0.25em] font-bold text-sm md:text-base">
-                                <span className="text-[#C8A24A] font-medium">RomaBeauty</span>Academy
-                            </span>
+                            <Wordmark style={navbarStyle} />
                         )}
                     </Link>
 
@@ -159,5 +160,49 @@ export default function Navbar() {
                 </div>
             )}
         </>
+    );
+}
+
+/** Wählbare, lebendige Wortmarke (Gold-Schimmer dauerhaft über .wordmark-gold). */
+export function Wordmark({ style }: { style: NavbarStyle }) {
+    if (style === "script") {
+        return (
+            <span className="flex items-baseline gap-2">
+                <span
+                    className="wordmark-gold"
+                    style={{ fontFamily: "var(--font-greatvibes), cursive", fontSize: "30px", lineHeight: 0.85 }}
+                >
+                    Roma Beauty
+                </span>
+                <span
+                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+                    className="text-[11px] font-semibold tracking-[0.4em] text-[#0B0B0B]"
+                >
+                    ACADEMY
+                </span>
+            </span>
+        );
+    }
+    if (style === "modern") {
+        return (
+            <span className="flex flex-col leading-[1.05]" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
+                <span className="wordmark-gold text-lg md:text-xl font-semibold tracking-[0.22em]">ROMABEAUTY</span>
+                <span className="mt-0.5 text-[10px] md:text-[11px] font-medium tracking-[0.5em] text-[#0B0B0B]">ACADEMY</span>
+            </span>
+        );
+    }
+    // serif (Standard)
+    return (
+        <span className="flex flex-col leading-none">
+            <span
+                className="wordmark-gold text-lg md:text-xl font-bold"
+                style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
+            >
+                RomaBeauty
+            </span>
+            <span className="mt-[3px] pl-[2px] text-[8px] md:text-[9px] font-medium tracking-[0.5em] text-[#0B0B0B]">
+                ACADEMY
+            </span>
+        </span>
     );
 }

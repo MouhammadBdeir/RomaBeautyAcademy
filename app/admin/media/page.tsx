@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth/session";
 import { getSiteImages, getGallery, getSections } from "@/lib/media/server";
 import { getContent } from "@/lib/content/server";
+import { getBranding } from "@/lib/branding/server";
 import { MediaProvider } from "@/components/media/MediaProvider";
 import { SectionsProvider } from "@/components/media/SectionsProvider";
 import AdminNav from "@/components/admin/AdminNav";
@@ -10,11 +11,12 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminMediaPage() {
     await requireAdmin();
-    const [images, gallery, sections, content] = await Promise.all([
+    const [images, gallery, sections, content, branding] = await Promise.all([
         getSiteImages(),
         getGallery(),
         getSections(),
         getContent(),
+        getBranding(),
     ]);
 
     return (
@@ -30,7 +32,7 @@ export default async function AdminMediaPage() {
                             bearbeiten – mit dem Schalter blendest du eine Sektion ein oder aus. Alles wird live übernommen.
                         </p>
 
-                        <MediaWorkspace gallery={gallery} initialContent={content} />
+                        <MediaWorkspace gallery={gallery} initialContent={content} navbarStyle={branding.navbarStyle} />
                     </main>
                 </div>
             </SectionsProvider>
