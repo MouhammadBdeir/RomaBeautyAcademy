@@ -5,8 +5,11 @@ import Image from "next/image";
 import { slugify, type SiteContent } from "@/lib/content/types";
 import { compressImage } from "@/lib/media/resize";
 import { uploadFile } from "@/lib/media/upload";
+import { useConfirm, type ConfirmOptions } from "./ConfirmDialog";
 
 type ContentKind = "hero" | "services" | "whyus" | "testimonials" | "about";
+
+type Confirm = (o: ConfirmOptions) => Promise<boolean>;
 
 function uid(): string {
     return Math.random().toString(36).slice(2, 9);
@@ -209,7 +212,15 @@ function ServiceImageUpload({ value, onChange }: { value: string; onChange: (url
     );
 }
 
-function ServicesFields({ value, onChange }: { value: SiteContent; onChange: (c: SiteContent) => void }) {
+function ServicesFields({
+    value,
+    onChange,
+    confirm,
+}: {
+    value: SiteContent;
+    onChange: (c: SiteContent) => void;
+    confirm: Confirm;
+}) {
     const s = value.services;
     const set = (patch: Partial<typeof s>) => onChange({ ...value, services: { ...s, ...patch } });
     const setItem = (id: string, patch: Partial<SiteContent["services"]["items"][number]>) =>
@@ -235,7 +246,15 @@ function ServicesFields({ value, onChange }: { value: SiteContent; onChange: (c:
                     <div className="flex items-center justify-between">
                         <p className="text-xs text-gray-400">/services/{item.slug || "…"}</p>
                         <button
-                            onClick={() => set({ items: s.items.filter((x) => x.id !== item.id) })}
+                            onClick={async () => {
+                                const ok = await confirm({
+                                    title: "Service entfernen?",
+                                    message: "Der Service inkl. Bild und Service-Seite wird beim Speichern entfernt.",
+                                    confirmLabel: "Entfernen",
+                                    tone: "danger",
+                                });
+                                if (ok) set({ items: s.items.filter((x) => x.id !== item.id) });
+                            }}
                             className="rounded-full border border-black/10 px-3 py-1 text-xs transition hover:border-red-400 hover:text-red-600"
                         >
                             Entfernen
@@ -263,6 +282,7 @@ export default function SectionContentEditor({
     const [saving, setSaving] = useState(false);
     const [status, setStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { confirm, dialog } = useConfirm();
 
     async function save() {
         setSaving(true);
@@ -288,7 +308,7 @@ export default function SectionContentEditor({
             <h3 className="mb-3 text-sm font-medium text-[#0B0B0B]">Texte</h3>
 
             {kind === "hero" && <HeroFields value={value} onChange={onChange} />}
-            {kind === "services" && <ServicesFields value={value} onChange={onChange} />}
+            {kind === "services" && <ServicesFields value={value} onChange={onChange} confirm={confirm} />}
             {kind === "whyus" && <WhyUsFields value={value} onChange={onChange} />}
             {kind === "testimonials" && <TestiFields value={value} onChange={onChange} />}
             {kind === "about" && <AboutFields value={value} onChange={onChange} />}
@@ -300,6 +320,7 @@ export default function SectionContentEditor({
                 {status && <span className="text-xs text-green-600">{status}</span>}
                 {error && <span className="text-xs text-red-600">{error}</span>}
             </div>
+            {dialog}
         </div>
     );
 }

@@ -102,6 +102,20 @@ export default async function ImpressumPage() {
                 Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet.
             </p>
 
+            <h2>Bildnachweis</h2>
+            <p>
+                Verwendete Symbol-/Beispielbilder stammen – soweit es sich nicht um eigene Aufnahmen handelt – von{" "}
+                <a href="https://unsplash.com" target="_blank" rel="noreferrer">
+                    Unsplash
+                </a>{" "}
+                und werden gemäß der{" "}
+                <a href="https://unsplash.com/license" target="_blank" rel="noreferrer">
+                    Unsplash-Lizenz
+                </a>{" "}
+                genutzt (kostenlose, auch kommerzielle Nutzung; ein Bildnachweis ist nicht verpflichtend). Eigene bzw.
+                vom Studio hochgeladene Aufnahmen: © RomaBeautyAcademy.
+            </p>
+
             <h2>Streitschlichtung</h2>
             <p>
                 Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{" "}
