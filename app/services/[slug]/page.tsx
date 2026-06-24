@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getContent } from "@/lib/content/server";
 import { getContactData } from "@/lib/contact/server";
+import { guardMaintenance } from "@/lib/settings/server";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ export default async function ServiceDetailPage({
 }: {
     params: Promise<{ slug: string }>;
 }) {
+    await guardMaintenance();
     const { slug } = await params;
     const [content, contact] = await Promise.all([getContent(), getContactData()]);
 

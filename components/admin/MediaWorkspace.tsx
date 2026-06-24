@@ -11,6 +11,8 @@ import { DEFAULT_CONTENT, type SiteContent } from "@/lib/content/types";
 import ImageSlotManager from "./ImageSlotManager";
 import GalleryManager from "./GalleryManager";
 import SectionContentEditor from "./SectionContentEditor";
+import NavbarStylePicker from "./NavbarStylePicker";
+import type { NavbarStyle } from "@/lib/branding/types";
 
 type Entry =
     | { kind: "home"; section: HomeSection }
@@ -28,8 +30,8 @@ const ABOUT_PAGE_ENTRY = {
 const BRANDING_ENTRY = {
     kind: "page" as const,
     id: "branding",
-    label: "Logo / Branding",
-    description: "Logo der Website – erscheint oben in der Navigation.",
+    label: "Navbar (Logo & Stil)",
+    description: "Schriftzug-Stil und optionales Logo-Bild für die obere Navigation.",
     groupId: "branding",
     href: "/",
 };
@@ -51,9 +53,11 @@ const CONTENT_KINDS: Record<string, "hero" | "services" | "whyus" | "testimonial
 export default function MediaWorkspace({
     gallery,
     initialContent,
+    navbarStyle = "serif",
 }: {
     gallery: GalleryItem[];
     initialContent?: SiteContent;
+    navbarStyle?: NavbarStyle;
 }) {
     const [selected, setSelected] = useState<string>("hero");
     const [content, setContent] = useState<SiteContent>(initialContent ?? DEFAULT_CONTENT);
@@ -101,7 +105,13 @@ export default function MediaWorkspace({
 
             {/* RECHTS: Detail der gewählten Sektion */}
             <div>
-                <Detail entry={current} gallery={gallery} content={content} onContentChange={setContent} />
+                <Detail
+                    entry={current}
+                    gallery={gallery}
+                    content={content}
+                    onContentChange={setContent}
+                    navbarStyle={navbarStyle}
+                />
             </div>
         </div>
     );
@@ -196,16 +206,19 @@ function Detail({
     gallery,
     content,
     onContentChange,
+    navbarStyle,
 }: {
     entry: Entry;
     gallery: GalleryItem[];
     content: SiteContent;
     onContentChange: (c: SiteContent) => void;
+    navbarStyle: NavbarStyle;
 }) {
     if (entry.kind === "page") {
         return (
             <div>
                 <DetailHeader title={entry.label} description={entry.description} href={entry.href} />
+                {entry.id === "branding" && <NavbarStylePicker initial={navbarStyle} />}
                 <SlotGrid slots={MEDIA_SLOTS.filter((s) => s.group === entry.groupId)} />
             </div>
         );

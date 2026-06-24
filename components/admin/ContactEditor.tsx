@@ -122,10 +122,10 @@ export default function ContactEditor({ initial }: { initial: ContactData }) {
                     <div className="space-y-3">
                         {data.social.map((s) => (
                             <div key={s.id} className="flex flex-wrap items-end gap-3">
-                                <div className="w-40">
+                                <div className="w-full sm:w-40">
                                     <Field label="Name" value={s.label} onChange={(v) => setSocial(s.id, { label: v })} placeholder="Instagram" />
                                 </div>
-                                <div className="min-w-0 flex-1">
+                                <div className="w-full min-w-0 sm:flex-1">
                                     <Field label="Link" value={s.url} onChange={(v) => setSocial(s.id, { url: v })} placeholder="https://instagram.com/…" />
                                 </div>
                                 <button

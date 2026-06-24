@@ -4,8 +4,11 @@ import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase/admin";
 import { getGermanHolidays } from "@/lib/holidays";
-import { dayState } from "@/lib/bookings/types";
-import { notifyOwnerOfBooking } from "@/lib/email";
+import { bookingDayState } from "@/lib/settings/types";
+import { getSettings } from "@/lib/settings/server";
+import { sendBookingReceived, notifyOwnerNewBooking } from "@/lib/email/server";
+import { createBookingNotification } from "@/lib/notifications/server";
+import { addLog } from "@/lib/logs/server";
 
 const isDateKey = (s: unknown): s is string => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
 const isEmail = (s: unknown): s is string => typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -28,6 +31,9 @@ export async function POST(request: Request) {
     const phone = typeof body?.phone === "string" ? body.phone.trim().slice(0, 60) : "";
     const time = typeof body?.time === "string" ? body.time.trim().slice(0, 20) : "";
     const message = typeof body?.message === "string" ? body.message.trim().slice(0, 1000) : "";
+    const service = typeof body?.service === "string" ? body.service.trim().slice(0, 120) : "";
+    const personsRaw = Number(body?.persons);
+    const persons = Number.isFinite(personsRaw) && personsRaw > 0 ? Math.min(Math.floor(personsRaw), 99) : 1;
     const date = body?.date;
 
     if (!name || name.length > 120) {
@@ -53,8 +59,8 @@ export async function POST(request: Request) {
     }
 
     const [y, m, d] = date.split("-").map(Number);
-    const holidays = await getGermanHolidays([y]);
-    const state = dayState(new Date(y, m - 1, d), holidays);
+    const [holidays, settings] = await Promise.all([getGermanHolidays([y]), getSettings()]);
+    const state = bookingDayState(new Date(y, m - 1, d), holidays, settings);
     if (state.closed) {
         return NextResponse.json(
             { error: `An diesem Tag ist keine Buchung möglich (${state.reason}).` },
@@ -62,19 +68,27 @@ export async function POST(request: Request) {
         );
     }
 
-    await adminDb().collection("bookings").add({
+    const ref = await adminDb().collection("bookings").add({
         name,
         email,
         phone,
         date,
         time,
         message,
+        service,
+        persons,
         status: "pending",
         privacyConsent: true,
         createdAt: FieldValue.serverTimestamp(),
     });
 
-    await notifyOwnerOfBooking({ name, email, date, time }).catch(() => {});
+    // Benachrichtigung fürs Dashboard anlegen (best-effort).
+    await createBookingNotification(ref.id, { name, date, time }).catch(() => {});
+    await addLog({ category: "booking", message: `Neue Anfrage von ${name} für ${date} um ${time} Uhr`, actor: "Kunde" });
+
+    // Kundenbestätigung + Owner-Benachrichtigung (best-effort, blockiert nie die Antwort).
+    const mailData = { name, email, phone, date, time, message, service, persons };
+    await Promise.allSettled([sendBookingReceived(mailData), notifyOwnerNewBooking(mailData)]);
 
     return NextResponse.json({ ok: true });
 }

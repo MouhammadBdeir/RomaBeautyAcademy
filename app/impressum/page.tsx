@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/LegalPage";
 import { getContactData } from "@/lib/contact/server";
+import { guardMaintenance } from "@/lib/settings/server";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ImpressumPage() {
+    await guardMaintenance();
     const c = await getContactData();
     const cityLine = [c.zip, c.city].filter(Boolean).join(" ");
 
@@ -98,6 +100,20 @@ export default async function ImpressumPage() {
             <p>
                 Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen
                 Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet.
+            </p>
+
+            <h2>Bildnachweis</h2>
+            <p>
+                Verwendete Symbol-/Beispielbilder stammen – soweit es sich nicht um eigene Aufnahmen handelt – von{" "}
+                <a href="https://unsplash.com" target="_blank" rel="noreferrer">
+                    Unsplash
+                </a>{" "}
+                und werden gemäß der{" "}
+                <a href="https://unsplash.com/license" target="_blank" rel="noreferrer">
+                    Unsplash-Lizenz
+                </a>{" "}
+                genutzt (kostenlose, auch kommerzielle Nutzung; ein Bildnachweis ist nicht verpflichtend). Eigene bzw.
+                vom Studio hochgeladene Aufnahmen: © RomaBeautyAcademy.
             </p>
 
             <h2>Streitschlichtung</h2>

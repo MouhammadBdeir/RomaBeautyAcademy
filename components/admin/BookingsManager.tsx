@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Booking, BookingStatus } from "@/lib/bookings/types";
-import { STATUS_LABEL, toDateKey, dayState } from "@/lib/bookings/types";
+import { STATUS_LABEL, toDateKey } from "@/lib/bookings/types";
+import { bookingDayState, type SiteSettings } from "@/lib/settings/types";
+import { useConfirm, useChoice, type ConfirmOptions } from "./ConfirmDialog";
 
 const MONTHS = [
     "Januar", "Februar", "März", "April", "Mai", "Juni",
@@ -18,6 +20,25 @@ const STATUS_BADGE: Record<BookingStatus, string> = {
     cancelled: "bg-red-100 text-red-600",
 };
 
+const STATUS_CONFIRM: Record<BookingStatus, (b: Booking) => ConfirmOptions> = {
+    confirmed: (b) => ({
+        title: "Buchung bestätigen?",
+        message: `${b.name} · ${b.date} um ${b.time} Uhr`,
+        confirmLabel: "Bestätigen",
+    }),
+    cancelled: (b) => ({
+        title: "Buchung absagen?",
+        message: `${b.name} · ${b.date} um ${b.time} Uhr`,
+        confirmLabel: "Absagen",
+        tone: "danger",
+    }),
+    pending: (b) => ({
+        title: "Buchung reaktivieren?",
+        message: `${b.name} · ${b.date} um ${b.time} Uhr`,
+        confirmLabel: "Reaktivieren",
+    }),
+};
+
 function errMsg(err: unknown): string {
     return err instanceof Error ? err.message : "Etwas ist schiefgelaufen.";
 }
@@ -26,21 +47,31 @@ export default function BookingsManager({
     initial,
     holidays,
     todayKey,
+    settings,
 }: {
     initial: Booking[];
     holidays: Record<string, string>;
     todayKey: string;
+    settings: SiteSettings;
 }) {
     const router = useRouter();
+    const { confirm, dialog } = useConfirm();
+    const { choose, dialog: choiceDialog } = useChoice();
+    // Aus einer Benachrichtigung heraus (?focus=…): passende Buchung anzeigen + hervorheben.
+    const focusId = useSearchParams().get("focus");
     const [ty, tm, td] = todayKey.split("-").map(Number);
     const tomorrowKey = toDateKey(new Date(ty, tm - 1, td + 1));
 
     const [bookings, setBookings] = useState<Booking[]>(initial);
     const [month, setMonth] = useState(tm - 1);
     const [year, setYear] = useState(ty);
-    const [filterDate, setFilterDate] = useState<string | null>(null); // null = alle
+    const [filterDate, setFilterDate] = useState<string | null>(() => {
+        const target = focusId ? initial.find((b) => b.id === focusId) : undefined;
+        return target ? target.date : null;
+    }); // null = alle
     const [busy, setBusy] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [highlightId, setHighlightId] = useState<string | null>(focusId);
 
     // Reschedule-Editor
     const [editing, setEditing] = useState<string | null>(null);
@@ -86,6 +117,23 @@ export default function BookingsManager({
         } else setMonth((m) => m + 1);
     }
 
+    // Zur hervorgehobenen Buchung scrollen, Markierung nach kurzer Zeit lösen.
+    useEffect(() => {
+        if (!highlightId) return;
+        const scroll = window.setTimeout(() => {
+            const els = document.querySelectorAll(`[data-booking-id="${highlightId}"]`);
+            const el = Array.from(els).find((e) => (e as HTMLElement).offsetParent !== null) as
+                | HTMLElement
+                | undefined;
+            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 60);
+        const clear = window.setTimeout(() => setHighlightId(null), 3500);
+        return () => {
+            window.clearTimeout(scroll);
+            window.clearTimeout(clear);
+        };
+    }, [highlightId]);
+
     async function patch(id: string, payload: Record<string, unknown>, optimistic: (b: Booking) => Booking) {
         setBusy(id);
         setError(null);
@@ -107,8 +155,23 @@ export default function BookingsManager({
         }
     }
 
-    function setStatus(id: string, status: BookingStatus) {
-        patch(id, { status }, (b) => ({ ...b, status }));
+    async function changeStatus(b: Booking, status: BookingStatus) {
+        if (!(await confirm(STATUS_CONFIRM[status](b)))) return;
+        patch(b.id, { status }, (x) => ({ ...x, status }));
+    }
+
+    // Bestätigen + entscheiden, was mit der Benachrichtigung passiert.
+    async function confirmBooking(b: Booking) {
+        const choice = await choose({
+            title: "Buchung bestätigen?",
+            message: `${b.name} · ${b.date} um ${b.time} Uhr\n\nWas soll mit der Benachrichtigung passieren?`,
+            choices: [
+                { value: "archive", label: "Bestätigen & Benachrichtigung archivieren" },
+                { value: "delete", label: "Bestätigen & Benachrichtigung löschen", tone: "danger" },
+            ],
+        });
+        if (!choice) return;
+        patch(b.id, { status: "confirmed", notification: choice }, (x) => ({ ...x, status: "confirmed" }));
     }
 
     function startEdit(b: Booking) {
@@ -125,18 +188,36 @@ export default function BookingsManager({
         }
         const date = editDate;
         const time = editTime;
+        const ok = await confirm({
+            title: "Termin verschieben?",
+            message: `Neuer Termin: ${date} um ${time} Uhr`,
+            confirmLabel: "Verschieben",
+        });
+        if (!ok) return;
         setEditing(null);
         await patch(id, { date, time }, (b) => ({ ...b, date, time }));
     }
 
-    async function remove(id: string) {
-        if (!window.confirm("Buchung wirklich löschen?")) return;
+    async function remove(b: Booking) {
+        const choice = await choose({
+            title: "Buchung löschen?",
+            message: `${b.name} · ${b.date} um ${b.time} Uhr\n\nWas soll mit der Benachrichtigung passieren?`,
+            choices: [
+                { value: "archive", label: "Löschen & Benachrichtigung archivieren" },
+                { value: "delete", label: "Löschen & Benachrichtigung entfernen", tone: "danger" },
+            ],
+        });
+        if (!choice) return;
+        const id = b.id;
         setBusy(id);
         setError(null);
         const prev = bookings;
         setBookings((list) => list.filter((x) => x.id !== id));
         try {
-            const res = await fetch(`/api/admin/bookings?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+            const res = await fetch(
+                `/api/admin/bookings?id=${encodeURIComponent(id)}&notification=${choice}`,
+                { method: "DELETE" },
+            );
             if (!res.ok) throw new Error("Löschen fehlgeschlagen.");
             router.refresh();
         } catch (err) {
@@ -145,6 +226,56 @@ export default function BookingsManager({
         } finally {
             setBusy(null);
         }
+    }
+
+    async function sendReminder(b: Booking) {
+        const ok = await confirm({
+            title: "Erinnerung jetzt senden?",
+            message: `${b.name} · ${b.date} um ${b.time} Uhr`,
+            confirmLabel: "Senden",
+        });
+        if (!ok) return;
+        setBusy(b.id);
+        setError(null);
+        try {
+            const res = await fetch("/api/admin/bookings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: b.id, action: "sendReminder" }),
+            });
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Senden fehlgeschlagen.");
+            setBookings((list) => list.map((x) => (x.id === b.id ? { ...x, reminderSentAt: "gerade eben" } : x)));
+            router.refresh();
+        } catch (err) {
+            setError(errMsg(err));
+        } finally {
+            setBusy(null);
+        }
+    }
+
+    // Erinnerungs-Status + "jetzt senden" – nur für bestätigte Termine.
+    function reminderControl(b: Booking) {
+        if (b.status !== "confirmed") return null;
+        return (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+                {b.reminderSentAt ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-green-600" title={`Gesendet: ${b.reminderSentAt}`}>
+                        <span aria-hidden>🔔</span> Erinnerung gesendet
+                    </span>
+                ) : (
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                        <span aria-hidden>🔔</span> nicht gesendet
+                    </span>
+                )}
+                <button
+                    onClick={() => sendReminder(b)}
+                    disabled={busy === b.id}
+                    className="rounded-full border border-black/10 px-2.5 py-1 text-xs transition hover:border-[#C8A24A] disabled:opacity-50"
+                >
+                    {b.reminderSentAt ? "Erneut senden" : "Jetzt senden"}
+                </button>
+            </div>
+        );
     }
 
     const chip = (label: string, value: string | null) => {
@@ -160,6 +291,49 @@ export default function BookingsManager({
             </button>
         );
     };
+
+    function renderActions(b: Booking, alignEnd: boolean) {
+        const wrap = `flex flex-wrap items-center gap-2 ${alignEnd ? "justify-end" : ""}`;
+        if (editing === b.id) {
+            return (
+                <div className={wrap}>
+                    <input
+                        type="date"
+                        min={todayKey}
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        className="rounded-lg border border-black/10 px-2 py-1 text-xs"
+                    />
+                    <select
+                        value={editTime}
+                        onChange={(e) => setEditTime(e.target.value)}
+                        className="rounded-lg border border-black/10 px-2 py-1 text-xs"
+                    >
+                        {TIME_SLOTS.map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                        ))}
+                    </select>
+                    <button onClick={() => saveEdit(b.id)} disabled={busy === b.id} className="rounded-full bg-[#C8A24A] px-3 py-1.5 text-xs text-black transition hover:scale-[1.03] disabled:opacity-50">Speichern</button>
+                    <button onClick={() => setEditing(null)} className="rounded-full border border-black/10 px-3 py-1.5 text-xs">Abbrechen</button>
+                </div>
+            );
+        }
+        return (
+            <div className={wrap}>
+                {b.status !== "confirmed" && (
+                    <button onClick={() => confirmBooking(b)} disabled={busy === b.id} className="rounded-full bg-[#C8A24A] px-3 py-1.5 text-xs text-black transition hover:scale-[1.03] disabled:opacity-50">Bestätigen</button>
+                )}
+                {b.status !== "cancelled" && (
+                    <button onClick={() => changeStatus(b, "cancelled")} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-red-400 hover:text-red-600 disabled:opacity-50">Absagen</button>
+                )}
+                {b.status === "cancelled" && (
+                    <button onClick={() => changeStatus(b, "pending")} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-[#C8A24A] disabled:opacity-50">Reaktivieren</button>
+                )}
+                <button onClick={() => startEdit(b)} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-[#C8A24A] disabled:opacity-50">Verschieben</button>
+                <button onClick={() => remove(b)} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-red-400 hover:text-red-600 disabled:opacity-50">Löschen</button>
+            </div>
+        );
+    }
 
     return (
         <div className="grid lg:grid-cols-[340px_1fr] gap-6">
@@ -182,7 +356,7 @@ export default function BookingsManager({
                         const date = new Date(year, month, day);
                         const key = toDateKey(date);
                         const count = countByDay[key] ?? 0;
-                        const st = dayState(date, holidays);
+                        const st = bookingDayState(date, holidays, settings);
                         const sel = filterDate === key;
                         const isToday = key === todayKey;
 
@@ -245,79 +419,94 @@ export default function BookingsManager({
                         Keine Buchungen.
                     </p>
                 ) : (
-                    <div className="overflow-x-auto rounded-2xl border border-black/10 bg-white">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-black/5 text-left text-gray-500">
-                                    <th className="px-4 py-3 font-medium">Termin</th>
-                                    <th className="px-4 py-3 font-medium">Kunde</th>
-                                    <th className="px-4 py-3 font-medium">Status</th>
-                                    <th className="px-4 py-3 text-right font-medium">Aktionen</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {visible.map((b) => (
-                                    <tr key={b.id} className="border-b border-black/5 align-top last:border-0">
-                                        <td className="whitespace-nowrap px-4 py-3">
-                                            <div className="font-medium text-[#0B0B0B]">{b.date}</div>
-                                            <div className="text-gray-500">{b.time} Uhr</div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="font-medium text-[#0B0B0B]">{b.name}</div>
-                                            <div className="text-gray-500">{b.email}</div>
-                                            {b.phone && <div className="text-gray-500">{b.phone}</div>}
-                                            {b.message && <div className="mt-1 max-w-xs text-xs text-gray-400">{b.message}</div>}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_BADGE[b.status]}`}>
-                                                {STATUS_LABEL[b.status]}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {editing === b.id ? (
-                                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                                    <input
-                                                        type="date"
-                                                        min={todayKey}
-                                                        value={editDate}
-                                                        onChange={(e) => setEditDate(e.target.value)}
-                                                        className="rounded-lg border border-black/10 px-2 py-1 text-xs"
-                                                    />
-                                                    <select
-                                                        value={editTime}
-                                                        onChange={(e) => setEditTime(e.target.value)}
-                                                        className="rounded-lg border border-black/10 px-2 py-1 text-xs"
-                                                    >
-                                                        {TIME_SLOTS.map((t) => (
-                                                            <option key={t} value={t}>{t}</option>
-                                                        ))}
-                                                    </select>
-                                                    <button onClick={() => saveEdit(b.id)} disabled={busy === b.id} className="rounded-full bg-[#C8A24A] px-3 py-1.5 text-xs text-black transition hover:scale-[1.03] disabled:opacity-50">Speichern</button>
-                                                    <button onClick={() => setEditing(null)} className="rounded-full border border-black/10 px-3 py-1.5 text-xs">Abbrechen</button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-wrap justify-end gap-2">
-                                                    {b.status !== "confirmed" && (
-                                                        <button onClick={() => setStatus(b.id, "confirmed")} disabled={busy === b.id} className="rounded-full bg-[#C8A24A] px-3 py-1.5 text-xs text-black transition hover:scale-[1.03] disabled:opacity-50">Bestätigen</button>
-                                                    )}
-                                                    {b.status !== "cancelled" && (
-                                                        <button onClick={() => setStatus(b.id, "cancelled")} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-red-400 hover:text-red-600 disabled:opacity-50">Absagen</button>
-                                                    )}
-                                                    {b.status === "cancelled" && (
-                                                        <button onClick={() => setStatus(b.id, "pending")} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-[#C8A24A] disabled:opacity-50">Reaktivieren</button>
-                                                    )}
-                                                    <button onClick={() => startEdit(b)} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-[#C8A24A] disabled:opacity-50">Verschieben</button>
-                                                    <button onClick={() => remove(b.id)} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-red-400 hover:text-red-600 disabled:opacity-50">Löschen</button>
-                                                </div>
-                                            )}
-                                        </td>
+                    <>
+                        {/* Tabelle – ab md */}
+                        <div className="hidden md:block overflow-x-auto rounded-2xl border border-black/10 bg-white">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-black/5 text-left text-gray-500">
+                                        <th className="px-4 py-3 font-medium">Termin</th>
+                                        <th className="px-4 py-3 font-medium">Kunde</th>
+                                        <th className="px-4 py-3 font-medium">Status</th>
+                                        <th className="px-4 py-3 text-right font-medium">Aktionen</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {visible.map((b) => (
+                                        <tr
+                                            key={b.id}
+                                            data-booking-id={b.id}
+                                            className={`border-b border-black/5 align-top transition-colors last:border-0 ${highlightId === b.id ? "bg-[#C8A24A]/10" : ""}`}
+                                        >
+                                            <td className="whitespace-nowrap px-4 py-3">
+                                                <div className="font-medium text-[#0B0B0B]">{b.date}</div>
+                                                <div className="text-gray-500">{b.time} Uhr</div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="font-medium text-[#0B0B0B]">{b.name}</div>
+                                                <div className="text-gray-500">{b.email}</div>
+                                                {b.phone && <div className="text-gray-500">{b.phone}</div>}
+                                                {(b.service || b.persons > 1) && (
+                                                    <div className="mt-1 text-xs text-[#8a6d24]">
+                                                        {[b.service, b.persons > 1 ? `${b.persons} Personen` : null].filter(Boolean).join(" · ")}
+                                                    </div>
+                                                )}
+                                                {b.message && <div className="mt-1 max-w-xs text-xs text-gray-400">{b.message}</div>}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_BADGE[b.status]}`}>
+                                                    {STATUS_LABEL[b.status]}
+                                                </span>
+                                                {reminderControl(b)}
+                                            </td>
+                                            <td className="px-4 py-3">{renderActions(b, true)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Karten – mobil */}
+                        <div className="space-y-3 md:hidden">
+                            {visible.map((b) => (
+                                <div
+                                    key={b.id}
+                                    data-booking-id={b.id}
+                                    className={`rounded-2xl border bg-white p-4 transition ${highlightId === b.id ? "border-[#C8A24A] ring-2 ring-[#C8A24A]" : "border-black/10"}`}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <div className="font-medium text-[#0B0B0B]">{b.date}</div>
+                                            <div className="text-sm text-gray-500">{b.time} Uhr</div>
+                                        </div>
+                                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${STATUS_BADGE[b.status]}`}>
+                                            {STATUS_LABEL[b.status]}
+                                        </span>
+                                    </div>
+                                    <div className="mt-3 border-t border-black/5 pt-3 text-sm">
+                                        <div className="font-medium text-[#0B0B0B]">{b.name}</div>
+                                        <a href={`mailto:${b.email}`} className="block break-all text-gray-500 hover:text-[#C8A24A]">{b.email}</a>
+                                        {b.phone && (
+                                            <a href={`tel:${b.phone}`} className="block text-gray-500 hover:text-[#C8A24A]">{b.phone}</a>
+                                        )}
+                                        {(b.service || b.persons > 1) && (
+                                            <div className="mt-1 text-xs text-[#8a6d24]">
+                                                {[b.service, b.persons > 1 ? `${b.persons} Personen` : null].filter(Boolean).join(" · ")}
+                                            </div>
+                                        )}
+                                        {b.message && <div className="mt-1 text-xs text-gray-400">{b.message}</div>}
+                                        {reminderControl(b)}
+                                    </div>
+                                    <div className="mt-3 border-t border-black/5 pt-3">{renderActions(b, false)}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 )}
             </div>
+
+            {dialog}
+            {choiceDialog}
         </div>
     );
 }

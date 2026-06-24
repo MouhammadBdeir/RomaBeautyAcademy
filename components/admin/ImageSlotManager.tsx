@@ -6,10 +6,12 @@ import { useMediaUrl } from "@/components/media/MediaProvider";
 import { compressImage, formatBytes } from "@/lib/media/resize";
 import { uploadFile } from "@/lib/media/upload";
 import type { MediaSlot } from "@/lib/media/registry";
+import { useConfirm } from "./ConfirmDialog";
 
 export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
     const currentUrl = useMediaUrl(slot.key);
     const inputRef = useRef<HTMLInputElement>(null);
+    const { confirm, dialog } = useConfirm();
 
     const [preview, setPreview] = useState<string | null>(null);
     const [savedUrl, setSavedUrl] = useState<string | null>(null);
@@ -64,6 +66,13 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
 
     async function reset() {
         if (busy) return;
+        const ok = await confirm({
+            title: "Auf Standard zurücksetzen?",
+            message: "Dein hochgeladenes Bild wird entfernt und das Standardbild wieder angezeigt.",
+            confirmLabel: "Zurücksetzen",
+            tone: "danger",
+        });
+        if (!ok) return;
         setBusy(true);
         setError(null);
         setStatus(null);
@@ -140,6 +149,7 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
             </div>
 
             <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+            {dialog}
         </div>
     );
 }

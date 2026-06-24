@@ -5,6 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { verifySession } from "@/lib/auth/session";
 import { sendPasswordReset } from "@/lib/email";
+import { addLog } from "@/lib/logs/server";
 
 const ACTIONS = ["approve", "reject", "revoke", "delete", "resetPassword"] as const;
 type Action = (typeof ACTIONS)[number];
@@ -44,12 +45,14 @@ export async function POST(request: Request) {
                 { merge: true },
             )
             .catch(() => {});
+        await addLog({ category: "admin", message: `Konto freigegeben: ${user.email ?? uid}`, actor: session.email ?? session.uid });
         return NextResponse.json({ ok: true });
     }
 
     if (action === "revoke") {
         await adminAuth().setCustomUserClaims(uid, { ...(user.customClaims ?? {}), admin: false });
         await adminAuth().revokeRefreshTokens(uid);
+        await addLog({ category: "admin", message: `Admin-Rechte entzogen: ${user.email ?? uid}`, actor: session.email ?? session.uid });
         return NextResponse.json({ ok: true });
     }
 
@@ -59,6 +62,7 @@ export async function POST(request: Request) {
         }
         const link = await adminAuth().generatePasswordResetLink(user.email);
         const emailed = await sendPasswordReset(user.email, link).catch(() => false);
+        await addLog({ category: "admin", message: `Passwort-Reset für ${user.email}`, actor: session.email ?? session.uid });
         // Wenn keine E-Mail versendet werden konnte, geben wir den Link an den Owner zurück.
         return NextResponse.json({ ok: true, emailed, link: emailed ? null : link });
     }
@@ -66,5 +70,11 @@ export async function POST(request: Request) {
     // reject / delete: Konto entfernen
     await adminDb().collection("pendingAdmins").doc(uid).delete().catch(() => {});
     await adminAuth().deleteUser(uid).catch(() => {});
+    await addLog({
+        category: "admin",
+        level: "warn",
+        message: `Konto ${action === "reject" ? "abgelehnt" : "gelöscht"}: ${user.email ?? uid}`,
+        actor: session.email ?? session.uid,
+    });
     return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/session";
 import { getBookings } from "@/lib/bookings/server";
 import { getGermanHolidays } from "@/lib/holidays";
+import { getSettings } from "@/lib/settings/server";
 import AdminNav from "@/components/admin/AdminNav";
 import BookingsManager from "@/components/admin/BookingsManager";
 
@@ -14,21 +16,24 @@ function todayKeyUTC(): string {
 export default async function AdminBookingsPage() {
     await requireAdmin();
     const now = new Date();
-    const [bookings, holidays] = await Promise.all([
+    const [bookings, holidays, settings] = await Promise.all([
         getBookings(),
         getGermanHolidays([now.getUTCFullYear(), now.getUTCFullYear() + 1]),
+        getSettings(),
     ]);
 
     return (
         <div className="min-h-screen bg-[#F7F3EE]">
             <AdminNav />
-            <main className="max-w-6xl mx-auto px-6 py-10">
+            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
                 <h1 className="text-3xl font-light text-[#0B0B0B]">Buchungen</h1>
                 <p className="mt-1 mb-8 text-sm text-gray-500">
                     Terminanfragen verwalten – im Kalender einen Tag wählen, dann bestätigen oder absagen
                     (auch nach der Bestätigung änderbar).
                 </p>
-                <BookingsManager initial={bookings} holidays={holidays} todayKey={todayKeyUTC()} />
+                <Suspense>
+                    <BookingsManager initial={bookings} holidays={holidays} todayKey={todayKeyUTC()} settings={settings} />
+                </Suspense>
             </main>
         </div>
     );
