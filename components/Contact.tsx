@@ -206,7 +206,7 @@ export default function Contact({
                         </div>
 
                         <p className="mt-4 text-xs text-gray-400">
-                            {["Sonntage", settings.blockSaturdays && "Samstage", "Feiertage", settings.vacations.length > 0 && "Urlaubstage"]
+                            {[settings.blockSundays && "Sonntage", settings.blockSaturdays && "Samstage", settings.blockHolidays && "Feiertage", settings.vacations.length > 0 && "Urlaubstage"]
                                 .filter(Boolean)
                                 .join(", ")}{" "}
                             sind nicht verfügbar.

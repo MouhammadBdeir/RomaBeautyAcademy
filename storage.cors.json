@@ -1,9 +1,9 @@
 [
   {
     "origin": [
-      "http://localhost:3000",
-      "https://romabeautyacademy.com",
-      "https://www.romabeautyacademy.com"
+      "https://romabeautyacademy.de",
+      "https://www.romabeautyacademy.de",
+      "http://localhost:3000"
     ],
     "method": ["GET", "PUT"],
     "responseHeader": ["Content-Type"],
