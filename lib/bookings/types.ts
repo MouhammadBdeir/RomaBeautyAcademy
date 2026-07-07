@@ -26,13 +26,8 @@ export function toDateKey(d: Date): string {
 
 export type DayState = { closed: boolean; reason: string | null };
 
-/** Geschlossen an Sonntagen und Feiertagen. Samstag = Arbeitstag. */
-export function dayState(d: Date, holidays: Record<string, string>): DayState {
-    if (d.getDay() === 0) return { closed: true, reason: "Sonntag (geschlossen)" };
-    const name = holidays[toDateKey(d)];
-    if (name) return { closed: true, reason: name };
-    return { closed: false, reason: null };
-}
+// Tages-Status (Sonntag/Samstag/Feiertag/Urlaub) wird schaltbar in
+// bookingDayState() in lib/settings/types.ts berechnet.
 
 export const STATUS_LABEL: Record<BookingStatus, string> = {
     pending: "Offen",

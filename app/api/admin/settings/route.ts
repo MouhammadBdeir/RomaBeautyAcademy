@@ -27,6 +27,8 @@ export async function POST(request: Request) {
     const pendingSettings = {
         maxAccounts: clean.maxAccounts,
         blockSaturdays: clean.blockSaturdays,
+        blockSundays: clean.blockSundays,
+        blockHolidays: clean.blockHolidays,
         vacations: clean.vacations,
         ccEmails: clean.ccEmails,
         language: clean.language,

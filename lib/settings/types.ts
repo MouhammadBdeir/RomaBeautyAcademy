@@ -1,5 +1,5 @@
 // Globale Seiten-Einstellungen (Admin). Client-sicher.
-import { dayState, toDateKey, type DayState } from "@/lib/bookings/types";
+import { toDateKey, type DayState } from "@/lib/bookings/types";
 
 export type Vacation = {
     id: string;
@@ -11,6 +11,8 @@ export type Vacation = {
 export type SiteSettings = {
     maxAccounts: number; // 0 = unbegrenzt
     blockSaturdays: boolean;
+    blockSundays: boolean;
+    blockHolidays: boolean;
     vacations: Vacation[];
     maintenanceMode: boolean;
     ccEmails: string[]; // zusätzliche Empfänger der Buchungs-Benachrichtigung
@@ -20,6 +22,8 @@ export type SiteSettings = {
 export const DEFAULT_SETTINGS: SiteSettings = {
     maxAccounts: 0,
     blockSaturdays: false,
+    blockSundays: true,
+    blockHolidays: true,
     vacations: [],
     maintenanceMode: false,
     ccEmails: [],
@@ -57,6 +61,9 @@ export function mergeSettings(raw: unknown): SiteSettings {
     return {
         maxAccounts,
         blockSaturdays: x.blockSaturdays === true,
+        // Standard: gesperrt (bisheriges Verhalten). Nur ein ausdrückliches false öffnet den Tag.
+        blockSundays: x.blockSundays !== false,
+        blockHolidays: x.blockHolidays !== false,
         vacations,
         maintenanceMode: x.maintenanceMode === true,
         ccEmails,
@@ -73,18 +80,24 @@ export function vacationLabel(dateKey: string, vacations: Vacation[]): string | 
 }
 
 /**
- * Tages-Status für die öffentliche Buchung: Sonntag/Feiertag (Basis) + optional
- * gesperrte Samstage + Urlaubstage aus den Einstellungen.
+ * Tages-Status für die öffentliche Buchung. Jede Sperre ist über die
+ * Einstellungen einzeln schaltbar: Sonntage, Samstage, Feiertage – dazu die
+ * eingetragenen Urlaubstage.
  */
 export function bookingDayState(
     d: Date,
     holidays: Record<string, string>,
-    settings: Pick<SiteSettings, "blockSaturdays" | "vacations">,
+    settings: Pick<SiteSettings, "blockSaturdays" | "blockSundays" | "blockHolidays" | "vacations">,
 ): DayState {
-    const base = dayState(d, holidays);
-    if (base.closed) return base;
+    if (settings.blockSundays && d.getDay() === 0) {
+        return { closed: true, reason: "Sonntag (geschlossen)" };
+    }
     if (settings.blockSaturdays && d.getDay() === 6) {
         return { closed: true, reason: "Samstag – geschlossen" };
+    }
+    if (settings.blockHolidays) {
+        const name = holidays[toDateKey(d)];
+        if (name) return { closed: true, reason: name };
     }
     const vac = vacationLabel(toDateKey(d), settings.vacations);
     if (vac) return { closed: true, reason: vac };

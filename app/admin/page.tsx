@@ -7,6 +7,7 @@ import UsersTable from "@/components/admin/UsersTable";
 import NotificationsPanel from "@/components/admin/NotificationsPanel";
 import DashboardTabs from "@/components/admin/DashboardTabs";
 import { getNotifications } from "@/lib/notifications/server";
+import { getAdminT } from "@/lib/i18n/admin-server";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,8 @@ function formatUsd(v: number): string {
 
 export default async function AdminDashboard() {
     const session = await requireAdmin();
-    const [users, storage, notifications] = await Promise.all([
+    const [{ t }, users, storage, notifications] = await Promise.all([
+        getAdminT(),
         listUsers(),
         getStorageUsage(),
         getNotifications(),
@@ -33,26 +35,27 @@ export default async function AdminDashboard() {
 
     const storageContent = (
         <section>
-            <p className="mb-4 text-sm text-gray-500">Firebase Storage – Nutzung und grobe Kostenschätzung.</p>
+            <p className="mb-4 text-sm text-gray-500">{t("Firebase Storage – Nutzung und grobe Kostenschätzung.")}</p>
             {storage.ok ? (
                 <div className="rounded-2xl border border-black/10 bg-white p-6">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <div>
                             <p className="text-3xl font-light text-[#0B0B0B]">{storage.fileCount}</p>
-                            <p className="text-sm text-gray-500">Dateien</p>
+                            <p className="text-sm text-gray-500">{t("Dateien")}</p>
                         </div>
                         <div>
                             <p className="text-3xl font-light text-[#0B0B0B]">{formatBytes(storage.totalBytes)}</p>
-                            <p className="text-sm text-gray-500">belegter Speicher</p>
+                            <p className="text-sm text-gray-500">{t("belegter Speicher")}</p>
                         </div>
                         <div>
                             <p className="text-3xl font-light text-[#C8A24A]">{formatUsd(storage.estimatedMonthlyUsd)}</p>
-                            <p className="text-sm text-gray-500">geschätzt / Monat</p>
+                            <p className="text-sm text-gray-500">{t("geschätzt / Monat")}</p>
                         </div>
                     </div>
                     <p className="mt-4 text-xs text-gray-400">
-                        Schätzung nur für Speicherung (~$0,026 / GB·Monat). Download-Traffic ist nicht enthalten – die
-                        genaue Abrechnung siehst du in der Firebase Console.
+                        {t(
+                            "Schätzung nur für Speicherung (~$0,026 / GB·Monat). Download-Traffic ist nicht enthalten – die genaue Abrechnung siehst du in der Firebase Console.",
+                        )}
                         {projectId && (
                             <>
                                 {" "}
@@ -62,7 +65,7 @@ export default async function AdminDashboard() {
                                     rel="noreferrer"
                                     className="text-[#C8A24A] hover:underline"
                                 >
-                                    Zur Nutzungsübersicht ↗
+                                    {t("Zur Nutzungsübersicht ↗")}
                                 </a>
                             </>
                         )}
@@ -70,7 +73,7 @@ export default async function AdminDashboard() {
                 </div>
             ) : (
                 <p className="rounded-2xl border border-black/10 bg-white p-6 text-sm text-gray-500">
-                    Speichernutzung nicht verfügbar – ist Firebase Storage im Projekt aktiviert?
+                    {t("Speichernutzung nicht verfügbar – ist Firebase Storage im Projekt aktiviert?")}
                 </p>
             )}
         </section>
@@ -80,8 +83,8 @@ export default async function AdminDashboard() {
         <section>
             <p className="mb-4 text-sm text-gray-500">
                 {session.owner
-                    ? "Alle Konten. Neue Registrierungen gibst du hier frei oder lehnst sie ab."
-                    : "Alle Admin-Konten."}
+                    ? t("Alle Konten. Neue Registrierungen gibst du hier frei oder lehnst sie ab.")
+                    : t("Alle Admin-Konten.")}
             </p>
             <UsersTable initial={users} isOwner={session.owner} />
         </section>
@@ -94,13 +97,13 @@ export default async function AdminDashboard() {
             <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-light text-[#0B0B0B]">Dashboard</h1>
+                        <h1 className="text-3xl font-light text-[#0B0B0B]">{t("Dashboard")}</h1>
                         <p className="mt-1 text-sm text-gray-500">
-                            Willkommen,{" "}
-                            <span className="font-medium text-[#0B0B0B]">{session.email ?? "Admin"}</span>
+                            {t("Willkommen,")}{" "}
+                            <span className="font-medium text-[#0B0B0B]">{session.email ?? t("Admin")}</span>
                             {session.owner && (
-                                <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#C8A24A]/20 text-[#0B0B0B]">
-                                    Owner
+                                <span className="ms-2 text-xs px-2 py-0.5 rounded-full bg-[#C8A24A]/20 text-[#0B0B0B]">
+                                    {t("Owner")}
                                 </span>
                             )}
                         </p>
@@ -110,7 +113,7 @@ export default async function AdminDashboard() {
                         href="/admin/media"
                         className="px-5 py-2 rounded-full bg-[#C8A24A] text-black text-sm font-medium hover:scale-[1.03] transition"
                     >
-                        Bilder &amp; Galerie verwalten →
+                        {t("Bilder & Galerie verwalten →")}
                     </Link>
                 </div>
 
@@ -119,11 +122,11 @@ export default async function AdminDashboard() {
                         tabs={[
                             {
                                 id: "notifications",
-                                label: "Benachrichtigungen & E-Mails",
+                                label: t("Benachrichtigungen & E-Mails"),
                                 content: <NotificationsPanel initial={notifications} />,
                             },
-                            { id: "storage", label: "Speicher & Kosten", content: storageContent },
-                            { id: "users", label: "Benutzer", content: usersContent },
+                            { id: "storage", label: t("Speicher & Kosten"), content: storageContent },
+                            { id: "users", label: t("Benutzer"), content: usersContent },
                         ]}
                     />
                 </div>

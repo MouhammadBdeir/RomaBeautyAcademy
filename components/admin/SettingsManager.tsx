@@ -160,6 +160,32 @@ export default function SettingsManager({ initial, logs }: { initial: SiteSettin
                     />
                 </div>
 
+                <div className="mt-4 flex items-center justify-between gap-4 border-t border-black/5 pt-4">
+                    <div>
+                        <p className="text-sm font-medium text-[#0B0B0B]">Sonntage sperren</p>
+                        <p className="text-sm text-gray-500">Kunden können sonntags keinen Termin buchen.</p>
+                    </div>
+                    <Toggle
+                        on={data.blockSundays}
+                        onClick={() => set("blockSundays", !data.blockSundays)}
+                        label="Sonntage sperren"
+                    />
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-4 border-t border-black/5 pt-4">
+                    <div>
+                        <p className="text-sm font-medium text-[#0B0B0B]">Feiertage sperren</p>
+                        <p className="text-sm text-gray-500">
+                            An gesetzlichen Feiertagen ist keine Buchung möglich.
+                        </p>
+                    </div>
+                    <Toggle
+                        on={data.blockHolidays}
+                        onClick={() => set("blockHolidays", !data.blockHolidays)}
+                        label="Feiertage sperren"
+                    />
+                </div>
+
                 <div className="mt-6 border-t border-black/5 pt-5">
                     <div className="mb-3 flex items-center justify-between">
                         <div>

@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
+import { useT } from "./AdminI18nProvider";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const LINKS = [
     { href: "/admin", label: "Dashboard" },
@@ -16,6 +18,7 @@ const LINKS = [
 ];
 
 export default function AdminNav() {
+    const { t } = useT();
     const pathname = usePathname();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -53,26 +56,29 @@ export default function AdminNav() {
                                             : "text-gray-500 hover:text-[#C8A24A] transition"
                                     }
                                 >
-                                    {l.label}
+                                    {t(l.label)}
                                 </Link>
                             );
                         })}
                     </nav>
                 </div>
 
-                {/* Abmelden – Desktop */}
-                <button
-                    onClick={logout}
-                    disabled={loading}
-                    className="hidden lg:inline-flex px-4 py-2 rounded-full border border-black/10 text-sm hover:border-[#C8A24A] transition disabled:opacity-50"
-                >
-                    {loading ? "Abmelden …" : "Abmelden"}
-                </button>
+                {/* Sprache + Abmelden – Desktop */}
+                <div className="hidden lg:flex items-center gap-3">
+                    <LanguageSwitcher />
+                    <button
+                        onClick={logout}
+                        disabled={loading}
+                        className="px-4 py-2 rounded-full border border-black/10 text-sm hover:border-[#C8A24A] transition disabled:opacity-50"
+                    >
+                        {loading ? t("Abmelden …") : t("Abmelden")}
+                    </button>
+                </div>
 
                 {/* Hamburger – Mobil */}
                 <button
                     onClick={() => setOpen((v) => !v)}
-                    aria-label={open ? "Menü schließen" : "Menü öffnen"}
+                    aria-label={open ? t("Menü schließen") : t("Menü öffnen")}
                     aria-expanded={open}
                     className="lg:hidden inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 hover:border-[#C8A24A] transition"
                 >
@@ -101,17 +107,20 @@ export default function AdminNav() {
                                             : "text-gray-600 hover:bg-black/5"
                                     }`}
                                 >
-                                    {l.label}
+                                    {t(l.label)}
                                 </Link>
                             );
                         })}
-                        <button
-                            onClick={logout}
-                            disabled={loading}
-                            className="mt-1 rounded-xl border border-black/10 px-3 py-2.5 text-left text-sm hover:border-[#C8A24A] transition disabled:opacity-50"
-                        >
-                            {loading ? "Abmelden …" : "Abmelden"}
-                        </button>
+                        <div className="mt-2 flex items-center justify-between gap-3 px-3">
+                            <LanguageSwitcher />
+                            <button
+                                onClick={logout}
+                                disabled={loading}
+                                className="rounded-xl border border-black/10 px-3 py-2.5 text-sm hover:border-[#C8A24A] transition disabled:opacity-50"
+                            >
+                                {loading ? t("Abmelden …") : t("Abmelden")}
+                            </button>
+                        </div>
                     </nav>
                 </div>
             )}
