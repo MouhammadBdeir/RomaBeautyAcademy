@@ -7,7 +7,9 @@ import { mapFirebaseError } from "@/lib/auth/firebase-errors";
 import { type SiteSettings, type Vacation } from "@/lib/settings/types";
 import { CATEGORY_LABEL, type LogCategory, type LogEntry } from "@/lib/logs/types";
 
-const DEVELOPER_EMAIL = "bdeiromar97@gmail.com";
+// Entwickler-Kontaktadresse kommt aus der Umgebung (NEXT_PUBLIC_, da Client-Komponente).
+// Nicht hardcodieren. Ist sie nicht gesetzt, wird der Kontakt-Abschnitt ausgeblendet.
+const DEVELOPER_EMAIL = process.env.NEXT_PUBLIC_DEVELOPER_EMAIL ?? "";
 
 function uid(): string {
     return Math.random().toString(36).slice(2, 9);
@@ -464,6 +466,9 @@ function LogsViewer({ initial }: { initial: LogEntry[] }) {
 
 function DeveloperContact() {
     const [copied, setCopied] = useState(false);
+
+    // Ohne konfigurierte Adresse (NEXT_PUBLIC_DEVELOPER_EMAIL) nichts anzeigen.
+    if (!DEVELOPER_EMAIL) return null;
 
     async function copy() {
         try {
