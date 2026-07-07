@@ -3,8 +3,40 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminUser } from "@/lib/auth/users";
+import { useConfirm, type ConfirmOptions } from "./ConfirmDialog";
 
 type Action = "approve" | "reject" | "revoke" | "delete" | "resetPassword";
+
+const USER_CONFIRM: Record<Action, (email: string) => ConfirmOptions> = {
+    approve: (email) => ({
+        title: "Konto freigeben?",
+        message: `${email} erhält damit vollen Zugriff auf den Admin-Bereich.`,
+        confirmLabel: "Freigeben",
+    }),
+    reject: (email) => ({
+        title: "Anfrage ablehnen?",
+        message: `Die Registrierung von ${email} wird abgelehnt und das Konto gelöscht.`,
+        confirmLabel: "Ablehnen",
+        tone: "danger",
+    }),
+    resetPassword: (email) => ({
+        title: "Passwort zurücksetzen?",
+        message: `Für ${email} wird ein Link zum Zurücksetzen erstellt bzw. per E-Mail gesendet.`,
+        confirmLabel: "Zurücksetzen",
+    }),
+    revoke: (email) => ({
+        title: "Admin-Rechte entziehen?",
+        message: `${email} verliert den Zugriff auf den Admin-Bereich.`,
+        confirmLabel: "Entziehen",
+        tone: "danger",
+    }),
+    delete: (email) => ({
+        title: "Konto endgültig löschen?",
+        message: `${email} wird unwiderruflich gelöscht. Das kann nicht rückgängig gemacht werden.`,
+        confirmLabel: "Löschen",
+        tone: "danger",
+    }),
+};
 
 const ROLE_BADGE: Record<AdminUser["role"], { label: string; cls: string }> = {
     owner: { label: "Owner", cls: "bg-[#C8A24A]/20 text-[#0B0B0B]" },
@@ -18,16 +50,17 @@ const btnDanger = "px-3 py-1.5 rounded-full border border-black/10 text-xs hover
 
 export default function UsersTable({ initial, isOwner }: { initial: AdminUser[]; isOwner: boolean }) {
     const router = useRouter();
+    const { confirm, dialog } = useConfirm();
     const [users, setUsers] = useState<AdminUser[]>(initial);
     const [busy, setBusy] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
 
-    async function act(uid: string, action: Action) {
-        if (action === "delete" && !window.confirm("Konto wirklich endgültig löschen?")) return;
-        if (action === "reject" && !window.confirm("Anfrage ablehnen und Konto löschen?")) return;
-        if (action === "revoke" && !window.confirm("Admin-Rechte wirklich entziehen?")) return;
+    async function act(user: AdminUser, action: Action) {
+        const ok = await confirm(USER_CONFIRM[action](user.email));
+        if (!ok) return;
 
+        const uid = user.uid;
         setBusy(uid);
         setError(null);
         setNotice(null);
@@ -64,6 +97,28 @@ export default function UsersTable({ initial, isOwner }: { initial: AdminUser[];
         return <p className="text-sm text-gray-500">Keine Benutzer gefunden.</p>;
     }
 
+    function actionsFor(u: AdminUser) {
+        const disabled = busy === u.uid;
+        if (u.role === "pending") {
+            return (
+                <>
+                    <button onClick={() => act(u, "approve")} disabled={disabled} className={btnPrimary}>Freigeben</button>
+                    <button onClick={() => act(u, "reject")} disabled={disabled} className={btnDanger}>Ablehnen</button>
+                </>
+            );
+        }
+        if (u.role === "admin") {
+            return (
+                <>
+                    <button onClick={() => act(u, "resetPassword")} disabled={disabled} className={btnGhost}>Passwort zurücksetzen</button>
+                    <button onClick={() => act(u, "revoke")} disabled={disabled} className={btnGhost}>Rechte entziehen</button>
+                    <button onClick={() => act(u, "delete")} disabled={disabled} className={btnDanger}>Löschen</button>
+                </>
+            );
+        }
+        return <span className="text-xs text-gray-400">—</span>;
+    }
+
     return (
         <div>
             {notice && (
@@ -73,7 +128,8 @@ export default function UsersTable({ initial, isOwner }: { initial: AdminUser[];
             )}
             {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
-            <div className="overflow-x-auto rounded-2xl border border-black/10 bg-white">
+            {/* Tabelle – ab md */}
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-black/10 bg-white">
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="text-left text-gray-500 border-b border-black/5">
@@ -87,7 +143,6 @@ export default function UsersTable({ initial, isOwner }: { initial: AdminUser[];
                     <tbody>
                         {users.map((u) => {
                             const badge = ROLE_BADGE[u.role];
-                            const disabled = busy === u.uid;
                             return (
                                 <tr key={u.uid} className="border-b border-black/5 last:border-0">
                                     <td className="px-4 py-3 text-[#0B0B0B]">{u.email}</td>
@@ -98,22 +153,7 @@ export default function UsersTable({ initial, isOwner }: { initial: AdminUser[];
                                     <td className="px-4 py-3 text-gray-500">{u.lastLogin}</td>
                                     {isOwner && (
                                         <td className="px-4 py-3">
-                                            <div className="flex flex-wrap gap-2 justify-end">
-                                                {u.role === "pending" && (
-                                                    <>
-                                                        <button onClick={() => act(u.uid, "approve")} disabled={disabled} className={btnPrimary}>Freigeben</button>
-                                                        <button onClick={() => act(u.uid, "reject")} disabled={disabled} className={btnDanger}>Ablehnen</button>
-                                                    </>
-                                                )}
-                                                {u.role === "admin" && (
-                                                    <>
-                                                        <button onClick={() => act(u.uid, "resetPassword")} disabled={disabled} className={btnGhost}>Passwort zurücksetzen</button>
-                                                        <button onClick={() => act(u.uid, "revoke")} disabled={disabled} className={btnGhost}>Rechte entziehen</button>
-                                                        <button onClick={() => act(u.uid, "delete")} disabled={disabled} className={btnDanger}>Löschen</button>
-                                                    </>
-                                                )}
-                                                {u.role === "owner" && <span className="text-xs text-gray-400">—</span>}
-                                            </div>
+                                            <div className="flex flex-wrap gap-2 justify-end">{actionsFor(u)}</div>
                                         </td>
                                     )}
                                 </tr>
@@ -122,6 +162,36 @@ export default function UsersTable({ initial, isOwner }: { initial: AdminUser[];
                     </tbody>
                 </table>
             </div>
+
+            {/* Karten – mobil */}
+            <div className="space-y-3 md:hidden">
+                {users.map((u) => {
+                    const badge = ROLE_BADGE[u.role];
+                    return (
+                        <div key={u.uid} className="rounded-2xl border border-black/10 bg-white p-4">
+                            <div className="flex items-start justify-between gap-3">
+                                <p className="min-w-0 break-all font-medium text-[#0B0B0B]">{u.email}</p>
+                                <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                            </div>
+                            <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                    <dt className="text-gray-400">Registriert</dt>
+                                    <dd className="text-gray-600">{u.created}</dd>
+                                </div>
+                                <div>
+                                    <dt className="text-gray-400">Letzter Login</dt>
+                                    <dd className="text-gray-600">{u.lastLogin}</dd>
+                                </div>
+                            </dl>
+                            {isOwner && u.role !== "owner" && (
+                                <div className="mt-4 flex flex-wrap gap-2">{actionsFor(u)}</div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {dialog}
         </div>
     );
 }

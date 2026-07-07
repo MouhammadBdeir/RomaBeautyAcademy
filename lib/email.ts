@@ -2,7 +2,7 @@
 // Wenn keine SMTP-Variablen gesetzt sind, passiert einfach nichts.
 import nodemailer from "nodemailer";
 
-function getTransport() {
+export function getTransport() {
     const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
     if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) return null;
 
@@ -12,6 +12,12 @@ function getTransport() {
         secure: Number(SMTP_PORT) === 465,
         auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
+}
+
+/** Absender mit freundlichem Namen, z. B. "RomaBeautyAcademy <info@…>". */
+export function mailFrom(): string | undefined {
+    const user = process.env.SMTP_USER;
+    return user ? `RomaBeautyAcademy <${user}>` : undefined;
 }
 
 export async function sendPasswordReset(to: string, link: string): Promise<boolean> {
@@ -29,30 +35,6 @@ export async function sendPasswordReset(to: string, link: string): Promise<boole
             `Falls du das nicht angefordert hast, ignoriere diese E-Mail.`,
     });
     return true;
-}
-
-export async function notifyOwnerOfBooking(b: {
-    name: string;
-    email: string;
-    date: string;
-    time: string;
-}): Promise<void> {
-    const transport = getTransport();
-    const owner = process.env.ADMIN_OWNER_EMAIL;
-    if (!transport || !owner) return;
-
-    const base = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-    await transport.sendMail({
-        from: process.env.SMTP_USER,
-        to: owner,
-        subject: `Neue Terminanfrage – ${b.date} ${b.time}`,
-        text:
-            `Neue Terminanfrage:\n\n` +
-            `  Name:   ${b.name}\n` +
-            `  E-Mail: ${b.email}\n` +
-            `  Termin: ${b.date} um ${b.time}\n\n` +
-            `Verwalten: ${base}/admin/bookings`,
-    });
 }
 
 export async function notifyOwnerOfRegistration(email: string): Promise<void> {

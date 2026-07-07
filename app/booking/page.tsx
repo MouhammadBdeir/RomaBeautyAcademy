@@ -1,8 +1,11 @@
+import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BookingForm from "@/components/booking/BookingForm";
 import { getGermanHolidays } from "@/lib/holidays";
 import { getContactData } from "@/lib/contact/server";
+import { getContent } from "@/lib/content/server";
+import { getSettings, guardMaintenance } from "@/lib/settings/server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,16 +15,28 @@ function todayKeyUTC(): string {
 }
 
 export default async function BookingPage() {
+    await guardMaintenance();
     const now = new Date();
-    const [holidays, contact] = await Promise.all([
+    const [holidays, contact, settings, content] = await Promise.all([
         getGermanHolidays([now.getUTCFullYear(), now.getUTCFullYear() + 1]),
         getContactData(),
+        getSettings(),
+        getContent(),
     ]);
+    const services = content.services.items.map((s) => ({ id: s.id, title: s.title }));
 
     return (
         <>
             <Navbar />
-            <BookingForm holidays={holidays} todayKey={todayKeyUTC()} contact={contact} />
+            <Suspense>
+                <BookingForm
+                    holidays={holidays}
+                    todayKey={todayKeyUTC()}
+                    contact={contact}
+                    settings={settings}
+                    services={services}
+                />
+            </Suspense>
             <Footer />
         </>
     );

@@ -5,20 +5,22 @@ import { NextResponse } from "next/server";
 import { getSiteImages, getGallery, getSections } from "@/lib/media/server";
 import { getContactData } from "@/lib/contact/server";
 import { getContent } from "@/lib/content/server";
+import { getBranding } from "@/lib/branding/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-    const [images, gallery, sections, contact, content] = await Promise.all([
+    const [images, gallery, sections, contact, content, branding] = await Promise.all([
         getSiteImages(),
         getGallery(),
         getSections(),
         getContactData(),
         getContent(),
+        getBranding(),
     ]);
 
     return NextResponse.json(
-        { images, gallery, sections, contact, content },
+        { images, gallery, sections, contact, content, branding },
         { headers: { "Cache-Control": "no-store" } },
     );
 }

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { compressImage, formatBytes } from "@/lib/media/resize";
 import { uploadFile } from "@/lib/media/upload";
 import type { GalleryItem } from "@/lib/media/server";
+import { useConfirm } from "./ConfirmDialog";
 
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
@@ -18,6 +19,7 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
     const [status, setStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const { confirm, dialog } = useConfirm();
 
     const photoInput = useRef<HTMLInputElement>(null);
     const videoInput = useRef<HTMLInputElement>(null);
@@ -95,7 +97,13 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
     }
 
     async function remove(id: string) {
-        if (!window.confirm("Diesen Eintrag wirklich löschen?")) return;
+        const ok = await confirm({
+            title: "Eintrag löschen?",
+            message: "Dieses Foto/Video wird endgültig aus der Galerie entfernt.",
+            confirmLabel: "Löschen",
+            tone: "danger",
+        });
+        if (!ok) return;
         setBusy(true);
         setError(null);
         try {
@@ -164,7 +172,7 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
                                 onClick={() => remove(item.id)}
                                 disabled={busy}
                                 aria-label="Löschen"
-                                className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-sm opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
+                                className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition disabled:opacity-50"
                             >
                                 ✕
                             </button>
@@ -175,6 +183,7 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
 
             <input ref={photoInput} type="file" accept="image/*" onChange={addPhoto} className="hidden" />
             <input ref={videoInput} type="file" accept="video/*" onChange={addVideo} className="hidden" />
+            {dialog}
         </div>
     );
 }

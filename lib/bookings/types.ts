@@ -10,8 +10,11 @@ export type Booking = {
     date: string; // YYYY-MM-DD
     time: string;
     message: string;
+    service: string; // gewünschter Service (optional vom Kunden)
+    persons: number; // Anzahl Personen (Standard 1)
     status: BookingStatus;
     createdAt: string | null;
+    reminderSentAt: string | null; // formatiert, wenn die Erinnerung verschickt wurde
 };
 
 export function toDateKey(d: Date): string {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
+import { bookingDayState, type SiteSettings } from "@/lib/settings/types";
 
 const monthNames = [
     "Januar", "Februar", "März", "April", "Mai", "Juni",
@@ -20,7 +21,13 @@ function useIsClient() {
     );
 }
 
-export default function Contact() {
+export default function Contact({
+    holidays,
+    settings,
+}: {
+    holidays: Record<string, string>;
+    settings: SiteSettings;
+}) {
     const isClient = useIsClient();
 
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -94,7 +101,7 @@ export default function Contact() {
                     </div>
 
                     <Link
-                        href="/booking"
+                        href={selectedDate ? `/booking?date=${selectedDate}` : "/booking"}
                         className="
                         mt-8 inline-block px-10 py-4
                         bg-[#C8A24A]
@@ -174,14 +181,17 @@ export default function Contact() {
                             {days.map((day) => {
                                 const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                                 const past = isPast(day);
+                                const st = bookingDayState(new Date(year, month, day), holidays, settings);
+                                const disabled = past || st.closed;
 
                                 return (
                                     <button
                                         key={day}
-                                        disabled={past}
+                                        disabled={disabled}
+                                        title={st.closed ? st.reason ?? undefined : undefined}
                                         onClick={() => setSelectedDate(dateString)}
                                         className={`p-2 rounded-lg transition ${
-                                            past
+                                            disabled
                                                 ? "text-gray-300 line-through cursor-not-allowed"
                                                 : selectedDate === dateString
                                                     ? "bg-[#C8A24A] text-black"
@@ -194,6 +204,13 @@ export default function Contact() {
                             })}
 
                         </div>
+
+                        <p className="mt-4 text-xs text-gray-400">
+                            {["Sonntage", settings.blockSaturdays && "Samstage", "Feiertage", settings.vacations.length > 0 && "Urlaubstage"]
+                                .filter(Boolean)
+                                .join(", ")}{" "}
+                            sind nicht verfügbar.
+                        </p>
 
                     </div>
                 )}

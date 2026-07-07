@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { toDateKey, dayState } from "@/lib/bookings/types";
+import { useSearchParams } from "next/navigation";
+import { toDateKey } from "@/lib/bookings/types";
+import { bookingDayState, type SiteSettings } from "@/lib/settings/types";
 import type { ContactData } from "@/lib/contact/types";
 
 const MONTHS = [
@@ -15,20 +17,36 @@ export default function BookingForm({
     holidays,
     todayKey,
     contact,
+    settings,
+    services,
 }: {
     holidays: Record<string, string>;
     todayKey: string;
     contact: ContactData;
+    settings: SiteSettings;
+    services: { id: string; title: string }[];
 }) {
     const [ty, tm] = todayKey.split("-").map(Number);
 
-    const [month, setMonth] = useState(tm - 1);
-    const [year, setYear] = useState(ty);
-    const [selected, setSelected] = useState<string | null>(null);
+    // Vorausgewähltes Datum aus dem Startseiten-Kalender (?date=…).
+    const dateParam = useSearchParams().get("date");
+    const presetDate =
+        dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam >= todayKey ? dateParam : null;
+    const [py, pm] = presetDate ? presetDate.split("-").map(Number) : [ty, tm];
+
+    const [month, setMonth] = useState(pm - 1);
+    const [year, setYear] = useState(py);
+    const [selected, setSelected] = useState<string | null>(presetDate);
     const [time, setTime] = useState<string | null>(null);
     const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+    const [service, setService] = useState("");
+    const [serviceOpen, setServiceOpen] = useState(false);
+    const [persons, setPersons] = useState("");
     const [privacy, setPrivacy] = useState(false);
     const [human, setHuman] = useState(false);
+    const [challenge, setChallenge] = useState<{ a: number; b: number } | null>(null);
+    const [captchaInput, setCaptchaInput] = useState("");
+    const [captchaError, setCaptchaError] = useState(false);
     const [honeypot, setHoneypot] = useState("");
 
     const [sending, setSending] = useState(false);
@@ -51,6 +69,30 @@ export default function BookingForm({
             setMonth(0);
             setYear((y) => y + 1);
         } else setMonth((m) => m + 1);
+    }
+
+    // "Ich bin kein Roboter": kleine Rechenaufgabe beim Klick.
+    function startCaptcha() {
+        if (human) {
+            setHuman(false);
+            setChallenge(null);
+            return;
+        }
+        setChallenge({ a: 1 + Math.floor(Math.random() * 9), b: 1 + Math.floor(Math.random() * 9) });
+        setCaptchaInput("");
+        setCaptchaError(false);
+    }
+    function verifyCaptcha() {
+        if (!challenge) return;
+        if (Number(captchaInput) === challenge.a + challenge.b) {
+            setHuman(true);
+            setChallenge(null);
+            setCaptchaError(false);
+        } else {
+            setCaptchaError(true);
+            setChallenge({ a: 1 + Math.floor(Math.random() * 9), b: 1 + Math.floor(Math.random() * 9) });
+            setCaptchaInput("");
+        }
     }
 
     async function submit() {
@@ -85,6 +127,8 @@ export default function BookingForm({
                     email: form.email,
                     phone: `+49 ${form.phone.trim()}`,
                     message: form.message,
+                    service,
+                    persons: persons ? Number(persons) : 1,
                     date: selected,
                     time,
                     privacyConsent: true,
@@ -152,7 +196,7 @@ export default function BookingForm({
                                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
                                     const date = new Date(year, month, day);
                                     const key = toDateKey(date);
-                                    const st = dayState(date, holidays);
+                                    const st = bookingDayState(date, holidays, settings);
                                     const past = key < todayKey;
                                     const disabled = past || st.closed;
                                     const isSel = selected === key;
@@ -181,7 +225,10 @@ export default function BookingForm({
                             </div>
 
                             <p className="mt-4 text-xs text-gray-400">
-                                Sonntage und gesetzliche Feiertage sind nicht buchbar.
+                                {["Sonntage", settings.blockSaturdays && "Samstage", "Feiertage", settings.vacations.length > 0 && "Urlaubstage"]
+                                    .filter(Boolean)
+                                    .join(", ")}{" "}
+                                sind nicht buchbar.
                             </p>
 
                             {selected && (
@@ -236,6 +283,73 @@ export default function BookingForm({
                                         onChange={(e) => setForm({ ...form, phone: e.target.value })}
                                     />
                                 </div>
+
+                                <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    {/* Eigenes Dropdown – damit auch die Optionen im Seiten-Design sind */}
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setServiceOpen((v) => !v)}
+                                            aria-haspopup="listbox"
+                                            aria-expanded={serviceOpen}
+                                            className="flex w-full items-center justify-between rounded-xl border border-black/10 p-3 text-left text-sm transition hover:border-[#C8A24A]/60 focus:border-[#C8A24A]"
+                                        >
+                                            <span className={service ? "text-[#0B0B0B]" : "text-gray-400"}>
+                                                {service || "Service wählen (optional)"}
+                                            </span>
+                                            <span className={`ml-2 text-gray-400 transition ${serviceOpen ? "rotate-180" : ""}`}>▾</span>
+                                        </button>
+
+                                        {serviceOpen && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    aria-hidden
+                                                    tabIndex={-1}
+                                                    onClick={() => setServiceOpen(false)}
+                                                    className="fixed inset-0 z-10 cursor-default"
+                                                />
+                                                <div
+                                                    role="listbox"
+                                                    className="absolute left-0 right-0 z-20 mt-2 max-h-64 overflow-auto rounded-xl border border-black/10 bg-white p-1 shadow-xl"
+                                                >
+                                                    {[
+                                                        { v: "", label: "Kein bestimmter Service" },
+                                                        ...services.map((s) => ({ v: s.title, label: s.title })),
+                                                        { v: "Sonstiges", label: "Sonstiges" },
+                                                    ].map((opt) => (
+                                                        <button
+                                                            key={opt.v || "none"}
+                                                            type="button"
+                                                            role="option"
+                                                            aria-selected={service === opt.v}
+                                                            onClick={() => {
+                                                                setService(opt.v);
+                                                                setServiceOpen(false);
+                                                            }}
+                                                            className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-[#C8A24A]/10 ${
+                                                                service === opt.v ? "bg-[#C8A24A]/15 text-[#0B0B0B]" : "text-gray-700"
+                                                            }`}
+                                                        >
+                                                            {opt.label}
+                                                            {service === opt.v && <span className="text-[#C8A24A]">✓</span>}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        inputMode="numeric"
+                                        placeholder="Anzahl Personen (optional)"
+                                        value={persons}
+                                        onChange={(e) => setPersons(e.target.value)}
+                                        className="w-full rounded-xl border border-black/10 p-3 text-sm outline-none focus:border-[#C8A24A]"
+                                    />
+                                </div>
+
                                 <textarea
                                     placeholder="Nachricht (optional)"
                                     value={form.message}
@@ -283,31 +397,67 @@ export default function BookingForm({
                                         className="hidden"
                                     />
 
-                                    {/* Sicherheitsprüfung */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setHuman((v) => !v)}
-                                        aria-pressed={human}
-                                        className={`flex w-full max-w-xs items-center justify-between gap-3 rounded-xl border px-4 py-3 transition ${
-                                            human ? "border-[#C8A24A] bg-[#C8A24A]/5" : "border-black/15 bg-white hover:border-[#C8A24A]/60"
-                                        }`}
-                                    >
-                                        <span className="flex items-center gap-3">
-                                            <span
-                                                className={`flex h-6 w-6 items-center justify-center rounded-md border text-sm ${
-                                                    human ? "border-[#C8A24A] bg-[#C8A24A] text-black" : "border-gray-300 text-transparent"
-                                                }`}
-                                            >
-                                                ✓
+                                    {/* Sicherheitsprüfung – Rechenaufgabe beim Klick */}
+                                    <div>
+                                        <button
+                                            type="button"
+                                            onClick={startCaptcha}
+                                            aria-pressed={human}
+                                            className={`flex w-full max-w-xs items-center justify-between gap-3 rounded-xl border px-4 py-3 transition ${
+                                                human ? "border-[#C8A24A] bg-[#C8A24A]/5" : "border-black/15 bg-white hover:border-[#C8A24A]/60"
+                                            }`}
+                                        >
+                                            <span className="flex items-center gap-3">
+                                                <span
+                                                    className={`flex h-6 w-6 items-center justify-center rounded-md border text-sm ${
+                                                        human ? "border-[#C8A24A] bg-[#C8A24A] text-black" : "border-gray-300 text-transparent"
+                                                    }`}
+                                                >
+                                                    ✓
+                                                </span>
+                                                <span className="text-sm text-gray-700">Ich bin kein Roboter</span>
                                             </span>
-                                            <span className="text-sm text-gray-700">Ich bin kein Roboter</span>
-                                        </span>
-                                        <span className="text-[10px] leading-tight text-gray-400">
-                                            Sicherheits-
-                                            <br />
-                                            prüfung
-                                        </span>
-                                    </button>
+                                            <span className="text-[10px] leading-tight text-gray-400">
+                                                Sicherheits-
+                                                <br />
+                                                prüfung
+                                            </span>
+                                        </button>
+
+                                        {challenge && !human && (
+                                            <div className="mt-3 max-w-xs rounded-xl border border-[#C8A24A]/40 bg-[#C8A24A]/5 p-3">
+                                                <p className="text-sm text-gray-700">Bitte löse zur Bestätigung:</p>
+                                                <div className="mt-2 flex items-center gap-2">
+                                                    <span className="text-sm font-medium text-[#0B0B0B]">
+                                                        {challenge.a} + {challenge.b} =
+                                                    </span>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="numeric"
+                                                        value={captchaInput}
+                                                        onChange={(e) => setCaptchaInput(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") {
+                                                                e.preventDefault();
+                                                                verifyCaptcha();
+                                                            }
+                                                        }}
+                                                        className="w-20 rounded-lg border border-black/10 p-2 text-sm outline-none focus:border-[#C8A24A]"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={verifyCaptcha}
+                                                        className="rounded-full bg-[#C8A24A] px-4 py-2 text-sm text-black transition hover:scale-[1.03]"
+                                                    >
+                                                        Prüfen
+                                                    </button>
+                                                </div>
+                                                {captchaError && (
+                                                    <p className="mt-2 text-xs text-red-600">Leider falsch – bitte erneut versuchen.</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
