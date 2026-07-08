@@ -6,12 +6,14 @@ import { MediaProvider } from "@/components/media/MediaProvider";
 import { SectionsProvider } from "@/components/media/SectionsProvider";
 import AdminNav from "@/components/admin/AdminNav";
 import MediaWorkspace from "@/components/admin/MediaWorkspace";
+import { getAdminT } from "@/lib/i18n/admin-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminMediaPage() {
     await requireAdmin();
-    const [images, gallery, sections, content, branding] = await Promise.all([
+    const [{ t }, images, gallery, sections, content, branding] = await Promise.all([
+        getAdminT(),
         getSiteImages(),
         getGallery(),
         getSections(),
@@ -26,10 +28,9 @@ export default async function AdminMediaPage() {
                     <AdminNav />
 
                     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-                        <h1 className="text-3xl font-light text-[#0B0B0B]">Homepage &amp; Medien</h1>
+                        <h1 className="text-3xl font-light text-[#0B0B0B]">{t("Homepage & Medien")}</h1>
                         <p className="mt-1 mb-8 text-sm text-gray-500">
-                            Links siehst du die Startseite von oben nach unten. Sektion anklicken, um ihre Bilder zu
-                            bearbeiten – mit dem Schalter blendest du eine Sektion ein oder aus. Alles wird live übernommen.
+                            {t("Links siehst du die Startseite von oben nach unten. Sektion anklicken, um ihre Bilder zu bearbeiten – mit dem Schalter blendest du eine Sektion ein oder aus. Alles wird live übernommen.")}
                         </p>
 
                         <MediaWorkspace gallery={gallery} initialContent={content} navbarStyle={branding.navbarStyle} />

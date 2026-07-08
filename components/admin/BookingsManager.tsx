@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Booking, BookingStatus } from "@/lib/bookings/types";
 import { STATUS_LABEL, toDateKey } from "@/lib/bookings/types";
 import { bookingDayState, type SiteSettings } from "@/lib/settings/types";
-import { useConfirm, useChoice, type ConfirmOptions } from "./ConfirmDialog";
+import { useConfirm, useChoice } from "./ConfirmDialog";
+import { useT } from "./AdminI18nProvider";
 
 const MONTHS = [
     "Januar", "Februar", "März", "April", "Mai", "Juni",
@@ -20,29 +21,6 @@ const STATUS_BADGE: Record<BookingStatus, string> = {
     cancelled: "bg-red-100 text-red-600",
 };
 
-const STATUS_CONFIRM: Record<BookingStatus, (b: Booking) => ConfirmOptions> = {
-    confirmed: (b) => ({
-        title: "Buchung bestätigen?",
-        message: `${b.name} · ${b.date} um ${b.time} Uhr`,
-        confirmLabel: "Bestätigen",
-    }),
-    cancelled: (b) => ({
-        title: "Buchung absagen?",
-        message: `${b.name} · ${b.date} um ${b.time} Uhr`,
-        confirmLabel: "Absagen",
-        tone: "danger",
-    }),
-    pending: (b) => ({
-        title: "Buchung reaktivieren?",
-        message: `${b.name} · ${b.date} um ${b.time} Uhr`,
-        confirmLabel: "Reaktivieren",
-    }),
-};
-
-function errMsg(err: unknown): string {
-    return err instanceof Error ? err.message : "Etwas ist schiefgelaufen.";
-}
-
 export default function BookingsManager({
     initial,
     holidays,
@@ -54,9 +32,13 @@ export default function BookingsManager({
     todayKey: string;
     settings: SiteSettings;
 }) {
+    const { t } = useT();
     const router = useRouter();
     const { confirm, dialog } = useConfirm();
     const { choose, dialog: choiceDialog } = useChoice();
+    // Kurzzeile für Dialoge – sprachneutral (Name · Datum · Uhrzeit).
+    const bookingLine = (b: Booking) => `${b.name} · ${b.date} · ${b.time}`;
+    const errMsg = (err: unknown) => (err instanceof Error ? err.message : t("Etwas ist schiefgelaufen."));
     // Aus einer Benachrichtigung heraus (?focus=…): passende Buchung anzeigen + hervorheben.
     const focusId = useSearchParams().get("focus");
     const [ty, tm, td] = todayKey.split("-").map(Number);
@@ -97,12 +79,12 @@ export default function BookingsManager({
 
     const filterLabel =
         filterDate === null
-            ? "Alle Reservierungen"
+            ? t("Alle Reservierungen")
             : filterDate === todayKey
-                ? "Heute"
+                ? t("Heute")
                 : filterDate === tomorrowKey
-                    ? "Morgen"
-                    : `Reservierungen am ${filterDate}`;
+                    ? t("Morgen")
+                    : `${t("Reservierungen am")} ${filterDate}`;
 
     function prevMonth() {
         if (month === 0) {
@@ -145,7 +127,7 @@ export default function BookingsManager({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id, ...payload }),
             });
-            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Fehlgeschlagen.");
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? t("Fehlgeschlagen."));
             router.refresh();
         } catch (err) {
             setBookings(prev);
@@ -156,18 +138,23 @@ export default function BookingsManager({
     }
 
     async function changeStatus(b: Booking, status: BookingStatus) {
-        if (!(await confirm(STATUS_CONFIRM[status](b)))) return;
+        const opts = {
+            confirmed: { title: t("Buchung bestätigen?"), message: bookingLine(b), confirmLabel: t("Bestätigen") },
+            cancelled: { title: t("Buchung absagen?"), message: bookingLine(b), confirmLabel: t("Absagen"), tone: "danger" as const },
+            pending: { title: t("Buchung reaktivieren?"), message: bookingLine(b), confirmLabel: t("Reaktivieren") },
+        };
+        if (!(await confirm(opts[status]))) return;
         patch(b.id, { status }, (x) => ({ ...x, status }));
     }
 
     // Bestätigen + entscheiden, was mit der Benachrichtigung passiert.
     async function confirmBooking(b: Booking) {
         const choice = await choose({
-            title: "Buchung bestätigen?",
-            message: `${b.name} · ${b.date} um ${b.time} Uhr\n\nWas soll mit der Benachrichtigung passieren?`,
+            title: t("Buchung bestätigen?"),
+            message: `${bookingLine(b)}\n\n${t("Was soll mit der Benachrichtigung passieren?")}`,
             choices: [
-                { value: "archive", label: "Bestätigen & Benachrichtigung archivieren" },
-                { value: "delete", label: "Bestätigen & Benachrichtigung löschen", tone: "danger" },
+                { value: "archive", label: t("Bestätigen & Benachrichtigung archivieren") },
+                { value: "delete", label: t("Bestätigen & Benachrichtigung löschen"), tone: "danger" },
             ],
         });
         if (!choice) return;
@@ -183,15 +170,15 @@ export default function BookingsManager({
 
     async function saveEdit(id: string) {
         if (!editDate || !editTime) {
-            setError("Bitte Datum und Uhrzeit wählen.");
+            setError(t("Bitte Datum und Uhrzeit wählen."));
             return;
         }
         const date = editDate;
         const time = editTime;
         const ok = await confirm({
-            title: "Termin verschieben?",
-            message: `Neuer Termin: ${date} um ${time} Uhr`,
-            confirmLabel: "Verschieben",
+            title: t("Termin verschieben?"),
+            message: `${t("Neuer Termin:")} ${date} · ${time}`,
+            confirmLabel: t("Verschieben"),
         });
         if (!ok) return;
         setEditing(null);
@@ -200,11 +187,11 @@ export default function BookingsManager({
 
     async function remove(b: Booking) {
         const choice = await choose({
-            title: "Buchung löschen?",
-            message: `${b.name} · ${b.date} um ${b.time} Uhr\n\nWas soll mit der Benachrichtigung passieren?`,
+            title: t("Buchung löschen?"),
+            message: `${bookingLine(b)}\n\n${t("Was soll mit der Benachrichtigung passieren?")}`,
             choices: [
-                { value: "archive", label: "Löschen & Benachrichtigung archivieren" },
-                { value: "delete", label: "Löschen & Benachrichtigung entfernen", tone: "danger" },
+                { value: "archive", label: t("Löschen & Benachrichtigung archivieren") },
+                { value: "delete", label: t("Löschen & Benachrichtigung entfernen"), tone: "danger" },
             ],
         });
         if (!choice) return;
@@ -218,7 +205,7 @@ export default function BookingsManager({
                 `/api/admin/bookings?id=${encodeURIComponent(id)}&notification=${choice}`,
                 { method: "DELETE" },
             );
-            if (!res.ok) throw new Error("Löschen fehlgeschlagen.");
+            if (!res.ok) throw new Error(t("Löschen fehlgeschlagen."));
             router.refresh();
         } catch (err) {
             setBookings(prev);
@@ -230,9 +217,9 @@ export default function BookingsManager({
 
     async function sendReminder(b: Booking) {
         const ok = await confirm({
-            title: "Erinnerung jetzt senden?",
-            message: `${b.name} · ${b.date} um ${b.time} Uhr`,
-            confirmLabel: "Senden",
+            title: t("Erinnerung jetzt senden?"),
+            message: bookingLine(b),
+            confirmLabel: t("Senden"),
         });
         if (!ok) return;
         setBusy(b.id);
@@ -243,8 +230,8 @@ export default function BookingsManager({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: b.id, action: "sendReminder" }),
             });
-            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Senden fehlgeschlagen.");
-            setBookings((list) => list.map((x) => (x.id === b.id ? { ...x, reminderSentAt: "gerade eben" } : x)));
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? t("Senden fehlgeschlagen."));
+            setBookings((list) => list.map((x) => (x.id === b.id ? { ...x, reminderSentAt: t("gerade eben") } : x)));
             router.refresh();
         } catch (err) {
             setError(errMsg(err));
@@ -259,12 +246,12 @@ export default function BookingsManager({
         return (
             <div className="mt-2 flex flex-wrap items-center gap-2">
                 {b.reminderSentAt ? (
-                    <span className="inline-flex items-center gap-1 text-xs text-green-600" title={`Gesendet: ${b.reminderSentAt}`}>
-                        <span aria-hidden>🔔</span> Erinnerung gesendet
+                    <span className="inline-flex items-center gap-1 text-xs text-green-600" title={`${t("Gesendet:")} ${b.reminderSentAt}`}>
+                        <span aria-hidden>🔔</span> {t("Erinnerung gesendet")}
                     </span>
                 ) : (
                     <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-                        <span aria-hidden>🔔</span> nicht gesendet
+                        <span aria-hidden>🔔</span> {t("nicht gesendet")}
                     </span>
                 )}
                 <button
@@ -272,7 +259,7 @@ export default function BookingsManager({
                     disabled={busy === b.id}
                     className="rounded-full border border-black/10 px-2.5 py-1 text-xs transition hover:border-[#C8A24A] disabled:opacity-50"
                 >
-                    {b.reminderSentAt ? "Erneut senden" : "Jetzt senden"}
+                    {b.reminderSentAt ? t("Erneut senden") : t("Jetzt senden")}
                 </button>
             </div>
         );
@@ -313,24 +300,24 @@ export default function BookingsManager({
                             <option key={t} value={t}>{t}</option>
                         ))}
                     </select>
-                    <button onClick={() => saveEdit(b.id)} disabled={busy === b.id} className="rounded-full bg-[#C8A24A] px-3 py-1.5 text-xs text-black transition hover:scale-[1.03] disabled:opacity-50">Speichern</button>
-                    <button onClick={() => setEditing(null)} className="rounded-full border border-black/10 px-3 py-1.5 text-xs">Abbrechen</button>
+                    <button onClick={() => saveEdit(b.id)} disabled={busy === b.id} className="rounded-full bg-[#C8A24A] px-3 py-1.5 text-xs text-black transition hover:scale-[1.03] disabled:opacity-50">{t("Speichern")}</button>
+                    <button onClick={() => setEditing(null)} className="rounded-full border border-black/10 px-3 py-1.5 text-xs">{t("Abbrechen")}</button>
                 </div>
             );
         }
         return (
             <div className={wrap}>
                 {b.status !== "confirmed" && (
-                    <button onClick={() => confirmBooking(b)} disabled={busy === b.id} className="rounded-full bg-[#C8A24A] px-3 py-1.5 text-xs text-black transition hover:scale-[1.03] disabled:opacity-50">Bestätigen</button>
+                    <button onClick={() => confirmBooking(b)} disabled={busy === b.id} className="rounded-full bg-[#C8A24A] px-3 py-1.5 text-xs text-black transition hover:scale-[1.03] disabled:opacity-50">{t("Bestätigen")}</button>
                 )}
                 {b.status !== "cancelled" && (
-                    <button onClick={() => changeStatus(b, "cancelled")} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-red-400 hover:text-red-600 disabled:opacity-50">Absagen</button>
+                    <button onClick={() => changeStatus(b, "cancelled")} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-red-400 hover:text-red-600 disabled:opacity-50">{t("Absagen")}</button>
                 )}
                 {b.status === "cancelled" && (
-                    <button onClick={() => changeStatus(b, "pending")} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-[#C8A24A] disabled:opacity-50">Reaktivieren</button>
+                    <button onClick={() => changeStatus(b, "pending")} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-[#C8A24A] disabled:opacity-50">{t("Reaktivieren")}</button>
                 )}
-                <button onClick={() => startEdit(b)} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-[#C8A24A] disabled:opacity-50">Verschieben</button>
-                <button onClick={() => remove(b)} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-red-400 hover:text-red-600 disabled:opacity-50">Löschen</button>
+                <button onClick={() => startEdit(b)} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-[#C8A24A] disabled:opacity-50">{t("Verschieben")}</button>
+                <button onClick={() => remove(b)} disabled={busy === b.id} className="rounded-full border border-black/10 px-3 py-1.5 text-xs transition hover:border-red-400 hover:text-red-600 disabled:opacity-50">{t("Löschen")}</button>
             </div>
         );
     }
@@ -340,14 +327,14 @@ export default function BookingsManager({
             {/* RESERVIERUNGS-KALENDER */}
             <div className="lg:sticky lg:top-20 self-start rounded-2xl border border-black/10 bg-white p-5">
                 <div className="mb-4 flex items-center justify-between">
-                    <button onClick={prevMonth} aria-label="Vorheriger Monat" className="text-[#C8A24A]">←</button>
-                    <h3 className="font-medium">{MONTHS[month]} {year}</h3>
-                    <button onClick={nextMonth} aria-label="Nächster Monat" className="text-[#C8A24A]">→</button>
+                    <button onClick={prevMonth} aria-label={t("Vorheriger Monat")} className="text-[#C8A24A]">←</button>
+                    <h3 className="font-medium">{t(MONTHS[month])} {year}</h3>
+                    <button onClick={nextMonth} aria-label={t("Nächster Monat")} className="text-[#C8A24A]">→</button>
                 </div>
 
                 <div className="grid grid-cols-7 gap-1 text-center text-xs">
                     {WEEKDAYS.map((w) => (
-                        <div key={w} className="pb-1 text-gray-400">{w}</div>
+                        <div key={w} className="pb-1 text-gray-400">{t(w)}</div>
                     ))}
                     {Array.from({ length: firstWeekday }).map((_, i) => (
                         <div key={`e-${i}`} />
@@ -388,12 +375,12 @@ export default function BookingsManager({
                     })}
                 </div>
 
-                <p className="mt-3 text-xs text-gray-400">Zahl = Reservierungen am Tag. Grau = geschlossen.</p>
+                <p className="mt-3 text-xs text-gray-400">{t("Zahl = Reservierungen am Tag. Grau = geschlossen.")}</p>
                 <button
                     onClick={() => router.refresh()}
                     className="mt-3 w-full rounded-full border border-black/10 py-2 text-sm hover:border-[#C8A24A] transition"
                 >
-                    Aktualisieren
+                    {t("Aktualisieren")}
                 </button>
             </div>
 
@@ -401,9 +388,9 @@ export default function BookingsManager({
             <div>
                 {/* Filter */}
                 <div className="mb-4 flex flex-wrap items-center gap-2">
-                    {chip("Alle", null)}
-                    {chip("Heute", todayKey)}
-                    {chip("Morgen", tomorrowKey)}
+                    {chip(t("Alle"), null)}
+                    {chip(t("Heute"), todayKey)}
+                    {chip(t("Morgen"), tomorrowKey)}
                     {filterDate && filterDate !== todayKey && filterDate !== tomorrowKey && (
                         <span className="rounded-full bg-[#C8A24A]/15 px-4 py-1.5 text-sm text-[#0B0B0B]">
                             {filterDate}
@@ -416,7 +403,7 @@ export default function BookingsManager({
 
                 {visible.length === 0 ? (
                     <p className="rounded-2xl border border-black/10 bg-white p-6 text-sm text-gray-500">
-                        Keine Buchungen.
+                        {t("Keine Buchungen.")}
                     </p>
                 ) : (
                     <>
@@ -424,11 +411,11 @@ export default function BookingsManager({
                         <div className="hidden md:block overflow-x-auto rounded-2xl border border-black/10 bg-white">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-black/5 text-left text-gray-500">
-                                        <th className="px-4 py-3 font-medium">Termin</th>
-                                        <th className="px-4 py-3 font-medium">Kunde</th>
-                                        <th className="px-4 py-3 font-medium">Status</th>
-                                        <th className="px-4 py-3 text-right font-medium">Aktionen</th>
+                                    <tr className="border-b border-black/5 text-start text-gray-500">
+                                        <th className="px-4 py-3 font-medium">{t("Termin")}</th>
+                                        <th className="px-4 py-3 font-medium">{t("Kunde")}</th>
+                                        <th className="px-4 py-3 font-medium">{t("Status")}</th>
+                                        <th className="px-4 py-3 text-end font-medium">{t("Aktionen")}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -440,7 +427,7 @@ export default function BookingsManager({
                                         >
                                             <td className="whitespace-nowrap px-4 py-3">
                                                 <div className="font-medium text-[#0B0B0B]">{b.date}</div>
-                                                <div className="text-gray-500">{b.time} Uhr</div>
+                                                <div className="text-gray-500">{b.time} {t("Uhr")}</div>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="font-medium text-[#0B0B0B]">{b.name}</div>
@@ -448,14 +435,14 @@ export default function BookingsManager({
                                                 {b.phone && <div className="text-gray-500">{b.phone}</div>}
                                                 {(b.service || b.persons > 1) && (
                                                     <div className="mt-1 text-xs text-[#8a6d24]">
-                                                        {[b.service, b.persons > 1 ? `${b.persons} Personen` : null].filter(Boolean).join(" · ")}
+                                                        {[b.service, b.persons > 1 ? `${b.persons} ${t("Personen")}` : null].filter(Boolean).join(" · ")}
                                                     </div>
                                                 )}
                                                 {b.message && <div className="mt-1 max-w-xs text-xs text-gray-400">{b.message}</div>}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_BADGE[b.status]}`}>
-                                                    {STATUS_LABEL[b.status]}
+                                                    {t(STATUS_LABEL[b.status])}
                                                 </span>
                                                 {reminderControl(b)}
                                             </td>
@@ -477,10 +464,10 @@ export default function BookingsManager({
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <div className="font-medium text-[#0B0B0B]">{b.date}</div>
-                                            <div className="text-sm text-gray-500">{b.time} Uhr</div>
+                                            <div className="text-sm text-gray-500">{b.time} {t("Uhr")}</div>
                                         </div>
                                         <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${STATUS_BADGE[b.status]}`}>
-                                            {STATUS_LABEL[b.status]}
+                                            {t(STATUS_LABEL[b.status])}
                                         </span>
                                     </div>
                                     <div className="mt-3 border-t border-black/5 pt-3 text-sm">
@@ -491,7 +478,7 @@ export default function BookingsManager({
                                         )}
                                         {(b.service || b.persons > 1) && (
                                             <div className="mt-1 text-xs text-[#8a6d24]">
-                                                {[b.service, b.persons > 1 ? `${b.persons} Personen` : null].filter(Boolean).join(" · ")}
+                                                {[b.service, b.persons > 1 ? `${b.persons} ${t("Personen")}` : null].filter(Boolean).join(" · ")}
                                             </div>
                                         )}
                                         {b.message && <div className="mt-1 text-xs text-gray-400">{b.message}</div>}

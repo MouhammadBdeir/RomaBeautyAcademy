@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { AdminNotification } from "@/lib/notifications/types";
 import { STATUS_LABEL, type BookingStatus } from "@/lib/bookings/types";
 import { useConfirm } from "./ConfirmDialog";
+import { useT } from "./AdminI18nProvider";
 
 const STATUS_BADGE: Record<BookingStatus, string> = {
     pending: "bg-gray-100 text-gray-600",
@@ -15,6 +16,7 @@ const STATUS_BADGE: Record<BookingStatus, string> = {
 const POLL_MS = 10000;
 
 export default function NotificationsPanel({ initial }: { initial: AdminNotification[] }) {
+    const { t } = useT();
     const router = useRouter();
     const { confirm, dialog } = useConfirm();
     const [items, setItems] = useState<AdminNotification[]>(initial);
@@ -82,7 +84,7 @@ export default function NotificationsPanel({ initial }: { initial: AdminNotifica
             });
             if (!res.ok) throw new Error();
         } catch {
-            setError(archived ? "Archivieren fehlgeschlagen." : "Wiederherstellen fehlgeschlagen.");
+            setError(archived ? t("Archivieren fehlgeschlagen.") : t("Wiederherstellen fehlgeschlagen."));
             load();
         } finally {
             setBusy(null);
@@ -97,9 +99,9 @@ export default function NotificationsPanel({ initial }: { initial: AdminNotifica
             return;
         }
         const ok = await confirm({
-            title: "Benachrichtigung löschen?",
-            message: `${n.name} · ${n.date} um ${n.time} Uhr`,
-            confirmLabel: "Löschen",
+            title: t("Benachrichtigung löschen?"),
+            message: `${n.name} · ${n.date} · ${n.time}`,
+            confirmLabel: t("Löschen"),
             tone: "danger",
         });
         if (!ok) return;
@@ -113,9 +115,9 @@ export default function NotificationsPanel({ initial }: { initial: AdminNotifica
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: n.id, action: "delete" }),
             });
-            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Löschen fehlgeschlagen.");
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? t("Löschen fehlgeschlagen."));
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Löschen fehlgeschlagen.");
+            setError(err instanceof Error ? err.message : t("Löschen fehlgeschlagen."));
             load();
         } finally {
             setBusy(null);
@@ -129,7 +131,7 @@ export default function NotificationsPanel({ initial }: { initial: AdminNotifica
         <section className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-medium text-[#0B0B0B]">Benachrichtigungen</h2>
+                    <h2 className="text-xl font-medium text-[#0B0B0B]">{t("Benachrichtigungen")}</h2>
                     {unread > 0 && (
                         <span className="rounded-full bg-[#C8A24A] px-2 py-0.5 text-xs font-medium text-black">{unread}</span>
                     )}
@@ -143,14 +145,14 @@ export default function NotificationsPanel({ initial }: { initial: AdminNotifica
                                 : "border-black/10 text-gray-600 hover:border-[#C8A24A]"
                         }`}
                     >
-                        {showArchived ? "Aktive anzeigen" : "Archiv anzeigen"}
+                        {showArchived ? t("Aktive anzeigen") : t("Archiv anzeigen")}
                     </button>
                     <span className="flex items-center gap-1.5 text-xs text-gray-400">
                         <span className="relative flex h-2 w-2">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
                         </span>
-                        Live
+                        {t("Live")}
                     </span>
                 </div>
             </div>
@@ -159,7 +161,7 @@ export default function NotificationsPanel({ initial }: { initial: AdminNotifica
 
             {visible.length === 0 ? (
                 <p className="text-sm text-gray-500">
-                    {showArchived ? "Kein Archiv vorhanden." : "Keine neuen Benachrichtigungen."}
+                    {showArchived ? t("Kein Archiv vorhanden.") : t("Keine neuen Benachrichtigungen.")}
                 </p>
             ) : (
                 <ul className="space-y-2">
@@ -178,21 +180,21 @@ export default function NotificationsPanel({ initial }: { initial: AdminNotifica
                                 <button onClick={() => open(n)} className="min-w-0 flex-1 text-left">
                                     <div className="flex flex-wrap items-center gap-2">
                                         {!n.read && !n.archived && (
-                                            <span className="h-2 w-2 rounded-full bg-[#C8A24A]" aria-label="ungelesen" />
+                                            <span className="h-2 w-2 rounded-full bg-[#C8A24A]" aria-label={t("ungelesen")} />
                                         )}
                                         <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_BADGE[n.status]}`}>
-                                            {STATUS_LABEL[n.status]}
+                                            {t(STATUS_LABEL[n.status])}
                                         </span>
                                         {n.archived && (
-                                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">Archiviert</span>
+                                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{t("Archiviert")}</span>
                                         )}
                                         {n.createdAt && <span className="text-xs text-gray-400">{n.createdAt}</span>}
                                     </div>
                                     <p className="mt-1 truncate font-medium text-[#0B0B0B]">{n.name}</p>
                                     <p className="text-xs text-gray-500">
-                                        Termin: {n.date} um {n.time} Uhr
+                                        {t("Termin:")} {n.date} · {n.time} {t("Uhr")}
                                     </p>
-                                    <span className="mt-1 inline-block text-xs text-[#C8A24A]">Zur Buchung →</span>
+                                    <span className="mt-1 inline-block text-xs text-[#C8A24A]">{t("Zur Buchung →")}</span>
                                 </button>
                                 <div className="flex shrink-0 flex-col items-end gap-1">
                                     <button
@@ -200,21 +202,20 @@ export default function NotificationsPanel({ initial }: { initial: AdminNotifica
                                         disabled={busy === n.id}
                                         className="rounded-full border border-black/10 px-3 py-1 text-xs transition hover:border-[#C8A24A] disabled:opacity-50"
                                     >
-                                        {n.archived ? "Wiederherstellen" : "Archivieren"}
+                                        {n.archived ? t("Wiederherstellen") : t("Archivieren")}
                                     </button>
                                     <button
                                         onClick={() => remove(n)}
                                         disabled={busy === n.id}
                                         className="rounded-full border border-black/10 px-3 py-1 text-xs transition hover:border-red-400 hover:text-red-600 disabled:opacity-50"
                                     >
-                                        Löschen
+                                        {t("Löschen")}
                                     </button>
                                 </div>
                             </div>
                             {hintId === n.id && (
                                 <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                                    Solange die Anfrage offen ist, kann sie nicht gelöscht werden. Bestätige oder sage den
-                                    Termin zuerst ab.
+                                    {t("Solange die Anfrage offen ist, kann sie nicht gelöscht werden. Bestätige oder sage den Termin zuerst ab.")}
                                 </p>
                             )}
                         </li>
