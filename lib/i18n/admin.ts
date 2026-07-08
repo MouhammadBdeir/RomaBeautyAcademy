@@ -499,7 +499,78 @@ const AR: Record<string, string> = {
     "Kurztext (Karte)": "نص قصير (بطاقة)",
     "Detail-Text (Service-Seite)": "نص تفصيلي (صفحة الخدمة)",
     "Bild hochladen": "رفع صورة",
+
+    // Protokoll-Meldungen (in der DB auf Deutsch gespeichert -> zur Anzeige übersetzt)
+    "Navbar-Stil:": "نمط شريط التنقل:",
+    "Login:": "تسجيل الدخول:",
+    "Neue Registrierung:": "تسجيل جديد:",
+    "Konto freigegeben:": "تمت الموافقة على الحساب:",
+    "Admin-Rechte entzogen:": "تم سحب صلاحيات المشرف:",
+    "Passwort-Reset für": "إعادة تعيين كلمة المرور لـ",
+    "Konto abgelehnt:": "تم رفض الحساب:",
+    "Konto gelöscht:": "تم حذف الحساب:",
+    "Buchung gelöscht:": "تم حذف الحجز:",
+    "Owner-Mail:": "بريد المالك:",
+    "Owner-Mail fehlgeschlagen:": "فشل بريد المالك:",
+    "Neue Anfrage von": "طلب جديد من",
+    "Erinnerung gesendet an": "تم إرسال تذكير إلى",
+    an: "إلى",
+    "Fehlgeschlagen:": "فشل:",
+    "Buchung von": "حجز",
+    aktualisiert: "تم تحديثه",
+    "Wartungsmodus aktiviert": "تم تفعيل وضع الصيانة",
+    "Wartungsmodus deaktiviert": "تم إيقاف وضع الصيانة",
+    "Einstellungs-Änderung angefragt – wartet auf Bestätigung des Owners":
+        "تم طلب تغيير الإعدادات – بانتظار تأكيد المالك",
+    "Einstellungen per Owner-Bestätigung übernommen": "تم تطبيق الإعدادات بعد تأكيد المالك",
+    "Einstellungen bestätigen – RomaBeautyAcademy": "تأكيد الإعدادات – RomaBeautyAcademy",
+    // Buchungs-Status (als Rohwert im Log)
+    confirmed: "مؤكَّد",
+    cancelled: "مُلغى",
+    pending: "قيد الانتظار",
 };
+
+/**
+ * Übersetzt eine Protokoll-Meldung. Die Meldungen liegen auf Deutsch in der DB
+ * und enthalten dynamische Teile (Namen, Datum, E-Mail) – daher Muster-basiert.
+ * Deutsch bleibt unverändert; unbekannte Meldungen fallen auf das Original zurück.
+ */
+export function translateLogMessage(lang: AdminLang, message: string): string {
+    if (lang === "de") return message;
+    const tt = (k: string) => translate(lang, k);
+
+    const exact = DICT[lang]?.[message];
+    if (exact) return exact;
+
+    let m: RegExpMatchArray | null;
+    if ((m = message.match(/^Navbar-Stil: (.+)$/))) return `${tt("Navbar-Stil:")} ${m[1]}`;
+    if ((m = message.match(/^Login: (.+)$/))) return `${tt("Login:")} ${m[1]}`;
+    if ((m = message.match(/^Neue Registrierung: (.+)$/))) return `${tt("Neue Registrierung:")} ${m[1]}`;
+    if ((m = message.match(/^Konto freigegeben: (.+)$/))) return `${tt("Konto freigegeben:")} ${m[1]}`;
+    if ((m = message.match(/^Admin-Rechte entzogen: (.+)$/))) return `${tt("Admin-Rechte entzogen:")} ${m[1]}`;
+    if ((m = message.match(/^Passwort-Reset für (.+)$/))) return `${tt("Passwort-Reset für")} ${m[1]}`;
+    if ((m = message.match(/^Konto abgelehnt: (.+)$/))) return `${tt("Konto abgelehnt:")} ${m[1]}`;
+    if ((m = message.match(/^Konto gelöscht: (.+)$/))) return `${tt("Konto gelöscht:")} ${m[1]}`;
+    if ((m = message.match(/^Buchung gelöscht: (.+)$/))) return `${tt("Buchung gelöscht:")} ${m[1]}`;
+    if ((m = message.match(/^Owner-Mail: (.+)$/))) return `${tt("Owner-Mail:")} ${tt(m[1])}`;
+    if ((m = message.match(/^Owner-Mail fehlgeschlagen: (.+)$/))) return `${tt("Owner-Mail fehlgeschlagen:")} ${tt(m[1])}`;
+    if ((m = message.match(/^Neue Anfrage von (.+) für (.+) um (.+) Uhr$/)))
+        return `${tt("Neue Anfrage von")} ${m[1]} — ${m[2]} · ${m[3]}`;
+    if ((m = message.match(/^Erinnerung gesendet an (.+) \((.+)\)$/)))
+        return `${tt("Erinnerung gesendet an")} ${m[1]} (${m[2]})`;
+    if ((m = message.match(/^Gesendet: „(.+)" an (.+)$/)))
+        return `${tt("Gesendet:")} „${m[1]}" ${tt("an")} ${m[2]}`;
+    if ((m = message.match(/^Fehlgeschlagen: „(.+)" an (.+)$/)))
+        return `${tt("Fehlgeschlagen:")} „${m[1]}" ${tt("an")} ${m[2]}`;
+    if ((m = message.match(/^Buchung von (.+?) aktualisiert(.*)$/))) {
+        const rest = m[2]
+            .replace(/ → (confirmed|cancelled|pending)/, (_x, s: string) => ` → ${tt(s)}`)
+            .replace(/\(Termin (.+)\)/, (_x, dt: string) => `(${tt("Termin")} ${dt})`);
+        return `${tt("Buchung von")} ${m[1]} ${tt("aktualisiert")}${rest}`;
+    }
+
+    return message;
+}
 
 const DICT: Record<AdminLang, Record<string, string>> = { de: {}, ar: AR };
 

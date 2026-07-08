@@ -7,6 +7,7 @@ import { mapFirebaseError } from "@/lib/auth/firebase-errors";
 import { type SiteSettings, type Vacation } from "@/lib/settings/types";
 import { CATEGORY_LABEL, type LogCategory, type LogEntry } from "@/lib/logs/types";
 import { useT } from "./AdminI18nProvider";
+import { translateLogMessage } from "@/lib/i18n/admin";
 
 // Entwickler-Kontaktadresse kommt aus der Umgebung (NEXT_PUBLIC_, da Client-Komponente).
 // Nicht hardcodieren. Ist sie nicht gesetzt, wird der Kontakt-Abschnitt ausgeblendet.
@@ -417,7 +418,7 @@ const CAT_BADGE: Record<LogCategory, string> = {
 };
 
 function LogsViewer({ initial }: { initial: LogEntry[] }) {
-    const { t } = useT();
+    const { t, lang } = useT();
     const [logs, setLogs] = useState<LogEntry[]>(initial);
     const [filter, setFilter] = useState<"all" | LogCategory>("all");
     const [busy, setBusy] = useState(false);
@@ -480,9 +481,9 @@ function LogsViewer({ initial }: { initial: LogEntry[] }) {
                                         {t(CATEGORY_LABEL[l.category])}
                                     </span>
                                     {l.createdAt && <span className="text-xs text-gray-400">{l.createdAt}</span>}
-                                    {l.actor && <span className="text-xs text-gray-400">· {l.actor}</span>}
+                                    {l.actor && <span className="text-xs text-gray-400">· {t(l.actor)}</span>}
                                 </div>
-                                <p className="mt-0.5 break-words text-[#0B0B0B]">{l.message}</p>
+                                <p className="mt-0.5 break-words text-[#0B0B0B]">{translateLogMessage(lang, l.message)}</p>
                             </div>
                         </li>
                     ))}
