@@ -6,14 +6,13 @@ import { compressImage, formatBytes } from "@/lib/media/resize";
 import { uploadFile } from "@/lib/media/upload";
 import type { GalleryItem } from "@/lib/media/server";
 import { useConfirm } from "./ConfirmDialog";
+import { useT } from "./AdminI18nProvider";
 
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
-function errMsg(err: unknown): string {
-    return err instanceof Error ? err.message : "Etwas ist schiefgelaufen.";
-}
-
 export default function GalleryManager({ initial = [] }: { initial?: GalleryItem[] }) {
+    const { t } = useT();
+    const errMsg = (err: unknown) => (err instanceof Error ? err.message : t("Etwas ist schiefgelaufen."));
     const [items, setItems] = useState<GalleryItem[]>(initial);
     const [progress, setProgress] = useState<number | null>(null);
     const [status, setStatus] = useState<string | null>(null);
@@ -32,7 +31,7 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-            throw new Error(data.error ?? "Speichern fehlgeschlagen.");
+            throw new Error(data.error ?? t("Speichern fehlgeschlagen."));
         }
         // optimistisch anzeigen, auch ohne Firestore-Live
         if (typeof data.id === "string") {
@@ -51,16 +50,16 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
         setBusy(true);
         setError(null);
         try {
-            setStatus("Komprimiere …");
+            setStatus(t("Komprimiere …"));
             const { file: compressed, width, height, sizeBytes } = await compressImage(file, {
                 maxDimension: 2000,
             });
-            setStatus(`Lade hoch … ${width}×${height}, ${formatBytes(sizeBytes)}`);
+            setStatus(`${t("Lade hoch …")} ${width}×${height}, ${formatBytes(sizeBytes)}`);
             setProgress(0);
             const { promise } = uploadFile(compressed, "gallery", setProgress);
             const { url, path } = await promise;
             await postGallery({ type: "image", url, path });
-            setStatus("Foto hinzugefügt ✓");
+            setStatus(t("Foto hinzugefügt ✓"));
         } catch (err) {
             setError(errMsg(err));
         } finally {
@@ -75,19 +74,19 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
         if (!file) return;
 
         if (file.size > MAX_VIDEO_BYTES) {
-            setError(`Video zu groß (${formatBytes(file.size)}). Maximal 50 MB.`);
+            setError(`${t("Video zu groß – maximal 50 MB.")} (${formatBytes(file.size)})`);
             return;
         }
 
         setBusy(true);
         setError(null);
         try {
-            setStatus(`Lade Video hoch … ${formatBytes(file.size)}`);
+            setStatus(`${t("Lade Video hoch …")} ${formatBytes(file.size)}`);
             setProgress(0);
             const { promise } = uploadFile(file, "gallery", setProgress);
             const { url, path } = await promise;
             await postGallery({ type: "video", url, path });
-            setStatus("Video hinzugefügt ✓");
+            setStatus(t("Video hinzugefügt ✓"));
         } catch (err) {
             setError(errMsg(err));
         } finally {
@@ -98,9 +97,9 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
 
     async function remove(id: string) {
         const ok = await confirm({
-            title: "Eintrag löschen?",
-            message: "Dieses Foto/Video wird endgültig aus der Galerie entfernt.",
-            confirmLabel: "Löschen",
+            title: t("Eintrag löschen?"),
+            message: t("Dieses Foto/Video wird endgültig aus der Galerie entfernt."),
+            confirmLabel: t("Löschen"),
             tone: "danger",
         });
         if (!ok) return;
@@ -112,7 +111,7 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
             });
             if (!res.ok) {
                 const d = await res.json().catch(() => ({}));
-                throw new Error(d.error ?? "Löschen fehlgeschlagen.");
+                throw new Error(d.error ?? t("Löschen fehlgeschlagen."));
             }
         } catch (err) {
             setError(errMsg(err));
@@ -129,14 +128,14 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
                     disabled={busy}
                     className="px-5 py-2 rounded-full bg-[#C8A24A] text-black text-sm hover:scale-[1.03] transition disabled:opacity-50"
                 >
-                    + Foto
+                    {t("+ Foto")}
                 </button>
                 <button
                     onClick={() => videoInput.current?.click()}
                     disabled={busy}
                     className="px-5 py-2 rounded-full border border-black/10 text-sm hover:border-[#C8A24A] transition disabled:opacity-50"
                 >
-                    + Video
+                    {t("+ Video")}
                 </button>
 
                 {status && <span className="text-xs text-green-600">{status}</span>}
@@ -153,7 +152,7 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
             )}
 
             {items.length === 0 ? (
-                <p className="mt-5 text-sm text-gray-500">Noch keine Einträge.</p>
+                <p className="mt-5 text-sm text-gray-500">{t("Noch keine Einträge.")}</p>
             ) : (
                 <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
                     {items.map((item) => (
@@ -165,13 +164,13 @@ export default function GalleryManager({ initial = [] }: { initial?: GalleryItem
                             )}
 
                             <span className="absolute top-1 left-1 text-[10px] px-2 py-0.5 rounded-full bg-black/60 text-white">
-                                {item.type === "video" ? "Video" : "Foto"}
+                                {item.type === "video" ? t("Video") : t("Foto")}
                             </span>
 
                             <button
                                 onClick={() => remove(item.id)}
                                 disabled={busy}
-                                aria-label="Löschen"
+                                aria-label={t("Löschen")}
                                 className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition disabled:opacity-50"
                             >
                                 ✕

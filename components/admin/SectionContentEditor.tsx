@@ -6,6 +6,7 @@ import { slugify, type SiteContent } from "@/lib/content/types";
 import { compressImage } from "@/lib/media/resize";
 import { uploadFile } from "@/lib/media/upload";
 import { useConfirm, type ConfirmOptions } from "./ConfirmDialog";
+import { useT } from "./AdminI18nProvider";
 
 type ContentKind = "hero" | "services" | "whyus" | "testimonials" | "about";
 
@@ -45,13 +46,14 @@ const addBtn = "rounded-full bg-[#C8A24A] px-3 py-1 text-xs text-black transitio
 const delBtn = "self-end rounded-full border border-black/10 px-3 py-2 text-xs transition hover:border-red-400 hover:text-red-600";
 
 function HeroFields({ value, onChange }: { value: SiteContent; onChange: (c: SiteContent) => void }) {
+    const { t } = useT();
     const h = value.hero;
     const set = (patch: Partial<typeof h>) => onChange({ ...value, hero: { ...h, ...patch } });
     return (
         <div className="space-y-3">
-            <Field label="Eyebrow (klein, oben)" value={h.eyebrow} onChange={(v) => set({ eyebrow: v })} />
-            <Field label="Überschrift" value={h.heading} onChange={(v) => set({ heading: v })} />
-            <Field label="Untertitel" value={h.subtitle} onChange={(v) => set({ subtitle: v })} area />
+            <Field label={t("Eyebrow (klein, oben)")} value={h.eyebrow} onChange={(v) => set({ eyebrow: v })} />
+            <Field label={t("Überschrift")} value={h.heading} onChange={(v) => set({ heading: v })} />
+            <Field label={t("Untertitel")} value={h.subtitle} onChange={(v) => set({ subtitle: v })} area />
             <div className="grid grid-cols-2 gap-3">
                 <Field label="Button 1" value={h.primary} onChange={(v) => set({ primary: v })} />
                 <Field label="Button 2" value={h.secondary} onChange={(v) => set({ secondary: v })} />
@@ -61,25 +63,26 @@ function HeroFields({ value, onChange }: { value: SiteContent; onChange: (c: Sit
 }
 
 function WhyUsFields({ value, onChange }: { value: SiteContent; onChange: (c: SiteContent) => void }) {
+    const { t } = useT();
     const w = value.whyus;
     const set = (patch: Partial<typeof w>) => onChange({ ...value, whyus: { ...w, ...patch } });
     return (
         <div className="space-y-3">
-            <Field label="Eyebrow" value={w.eyebrow} onChange={(v) => set({ eyebrow: v })} />
-            <Field label="Überschrift" value={w.heading} onChange={(v) => set({ heading: v })} />
+            <Field label={t("Eyebrow")} value={w.eyebrow} onChange={(v) => set({ eyebrow: v })} />
+            <Field label={t("Überschrift")} value={w.heading} onChange={(v) => set({ heading: v })} />
             <div className="flex items-center justify-between pt-1">
-                <span className="text-xs uppercase tracking-wide text-gray-400">Karten</span>
-                <button onClick={() => set({ cards: [...w.cards, { id: uid(), title: "", text: "" }] })} className={addBtn}>+ Karte</button>
+                <span className="text-xs uppercase tracking-wide text-gray-400">{t("Karten")}</span>
+                <button onClick={() => set({ cards: [...w.cards, { id: uid(), title: "", text: "" }] })} className={addBtn}>{t("+ Karte")}</button>
             </div>
             {w.cards.map((c) => (
                 <div key={c.id} className="space-y-2 rounded-lg border border-black/10 p-3">
                     <div className="flex gap-2">
                         <div className="flex-1">
-                            <Field label="Titel" value={c.title} onChange={(v) => set({ cards: w.cards.map((x) => (x.id === c.id ? { ...x, title: v } : x)) })} />
+                            <Field label={t("Titel")} value={c.title} onChange={(v) => set({ cards: w.cards.map((x) => (x.id === c.id ? { ...x, title: v } : x)) })} />
                         </div>
                         <button onClick={() => set({ cards: w.cards.filter((x) => x.id !== c.id) })} className={delBtn}>×</button>
                     </div>
-                    <Field label="Text" value={c.text} onChange={(v) => set({ cards: w.cards.map((x) => (x.id === c.id ? { ...x, text: v } : x)) })} area />
+                    <Field label={t("Text")} value={c.text} onChange={(v) => set({ cards: w.cards.map((x) => (x.id === c.id ? { ...x, text: v } : x)) })} area />
                 </div>
             ))}
         </div>
@@ -87,27 +90,28 @@ function WhyUsFields({ value, onChange }: { value: SiteContent; onChange: (c: Si
 }
 
 function TestiFields({ value, onChange }: { value: SiteContent; onChange: (c: SiteContent) => void }) {
-    const t = value.testimonials;
-    const set = (patch: Partial<typeof t>) => onChange({ ...value, testimonials: { ...t, ...patch } });
+    const { t } = useT();
+    const ti = value.testimonials;
+    const set = (patch: Partial<typeof ti>) => onChange({ ...value, testimonials: { ...ti, ...patch } });
     return (
         <div className="space-y-3">
-            <Field label="Eyebrow" value={t.eyebrow} onChange={(v) => set({ eyebrow: v })} />
-            <Field label="Überschrift" value={t.heading} onChange={(v) => set({ heading: v })} />
+            <Field label={t("Eyebrow")} value={ti.eyebrow} onChange={(v) => set({ eyebrow: v })} />
+            <Field label={t("Überschrift")} value={ti.heading} onChange={(v) => set({ heading: v })} />
             <div className="flex items-center justify-between pt-1">
-                <span className="text-xs uppercase tracking-wide text-gray-400">Bewertungen</span>
-                <button onClick={() => set({ reviews: [...t.reviews, { id: uid(), name: "", text: "", rating: 5 }] })} className={addBtn}>+ Bewertung</button>
+                <span className="text-xs uppercase tracking-wide text-gray-400">{t("Bewertungen")}</span>
+                <button onClick={() => set({ reviews: [...ti.reviews, { id: uid(), name: "", text: "", rating: 5 }] })} className={addBtn}>{t("+ Bewertung")}</button>
             </div>
-            {t.reviews.map((r) => (
+            {ti.reviews.map((r) => (
                 <div key={r.id} className="space-y-2 rounded-lg border border-black/10 p-3">
                     <div className="flex items-end gap-2">
                         <div className="flex-1">
-                            <Field label="Name" value={r.name} onChange={(v) => set({ reviews: t.reviews.map((x) => (x.id === r.id ? { ...x, name: v } : x)) })} />
+                            <Field label={t("Name")} value={r.name} onChange={(v) => set({ reviews: ti.reviews.map((x) => (x.id === r.id ? { ...x, name: v } : x)) })} />
                         </div>
                         <label className="block">
-                            <span className="text-xs text-gray-500">Sterne</span>
+                            <span className="text-xs text-gray-500">{t("Sterne")}</span>
                             <select
                                 value={r.rating}
-                                onChange={(e) => set({ reviews: t.reviews.map((x) => (x.id === r.id ? { ...x, rating: Number(e.target.value) } : x)) })}
+                                onChange={(e) => set({ reviews: ti.reviews.map((x) => (x.id === r.id ? { ...x, rating: Number(e.target.value) } : x)) })}
                                 className="mt-1 rounded-lg border border-black/10 p-2 text-sm"
                             >
                                 {[5, 4, 3, 2, 1].map((n) => (
@@ -115,9 +119,9 @@ function TestiFields({ value, onChange }: { value: SiteContent; onChange: (c: Si
                                 ))}
                             </select>
                         </label>
-                        <button onClick={() => set({ reviews: t.reviews.filter((x) => x.id !== r.id) })} className={delBtn}>×</button>
+                        <button onClick={() => set({ reviews: ti.reviews.filter((x) => x.id !== r.id) })} className={delBtn}>×</button>
                     </div>
-                    <Field label="Text" value={r.text} onChange={(v) => set({ reviews: t.reviews.map((x) => (x.id === r.id ? { ...x, text: v } : x)) })} area />
+                    <Field label={t("Text")} value={r.text} onChange={(v) => set({ reviews: ti.reviews.map((x) => (x.id === r.id ? { ...x, text: v } : x)) })} area />
                 </div>
             ))}
         </div>
@@ -125,16 +129,17 @@ function TestiFields({ value, onChange }: { value: SiteContent; onChange: (c: Si
 }
 
 function AboutFields({ value, onChange }: { value: SiteContent; onChange: (c: SiteContent) => void }) {
+    const { t } = useT();
     const a = value.about;
     const set = (patch: Partial<typeof a>) => onChange({ ...value, about: { ...a, ...patch } });
     return (
         <div className="space-y-3">
-            <Field label="Eyebrow" value={a.eyebrow} onChange={(v) => set({ eyebrow: v })} />
-            <Field label="Überschrift" value={a.heading} onChange={(v) => set({ heading: v })} />
+            <Field label={t("Eyebrow")} value={a.eyebrow} onChange={(v) => set({ eyebrow: v })} />
+            <Field label={t("Überschrift")} value={a.heading} onChange={(v) => set({ heading: v })} />
 
             <div className="flex items-center justify-between pt-1">
-                <span className="text-xs uppercase tracking-wide text-gray-400">Absätze</span>
-                <button onClick={() => set({ paragraphs: [...a.paragraphs, ""] })} className={addBtn}>+ Absatz</button>
+                <span className="text-xs uppercase tracking-wide text-gray-400">{t("Absätze")}</span>
+                <button onClick={() => set({ paragraphs: [...a.paragraphs, ""] })} className={addBtn}>{t("+ Absatz")}</button>
             </div>
             {a.paragraphs.map((p, i) => (
                 <div key={i} className="flex gap-2">
@@ -149,21 +154,21 @@ function AboutFields({ value, onChange }: { value: SiteContent; onChange: (c: Si
             ))}
 
             <div className="flex items-center justify-between pt-1">
-                <span className="text-xs uppercase tracking-wide text-gray-400">Zahlen (zählen von 0 hoch)</span>
-                <button onClick={() => set({ stats: [...a.stats, { id: uid(), value: 0, suffix: "+", label: "" }] })} className={addBtn}>+ Zahl</button>
+                <span className="text-xs uppercase tracking-wide text-gray-400">{t("Zahlen (zählen von 0 hoch)")}</span>
+                <button onClick={() => set({ stats: [...a.stats, { id: uid(), value: 0, suffix: "+", label: "" }] })} className={addBtn}>{t("+ Zahl")}</button>
             </div>
             {a.stats.map((s) => (
                 <div key={s.id} className="flex flex-wrap items-end gap-2">
                     <label className="block w-20">
-                        <span className="text-xs text-gray-500">Wert</span>
+                        <span className="text-xs text-gray-500">{t("Wert")}</span>
                         <input type="number" value={s.value} onChange={(e) => set({ stats: a.stats.map((x) => (x.id === s.id ? { ...x, value: Number(e.target.value) || 0 } : x)) })} className="mt-1 w-full rounded-lg border border-black/10 p-2 text-sm" />
                     </label>
                     <label className="block w-16">
-                        <span className="text-xs text-gray-500">Zusatz</span>
+                        <span className="text-xs text-gray-500">{t("Zusatz")}</span>
                         <input value={s.suffix} onChange={(e) => set({ stats: a.stats.map((x) => (x.id === s.id ? { ...x, suffix: e.target.value } : x)) })} className="mt-1 w-full rounded-lg border border-black/10 p-2 text-sm" />
                     </label>
                     <div className="min-w-[7rem] flex-1">
-                        <Field label="Label" value={s.label} onChange={(v) => set({ stats: a.stats.map((x) => (x.id === s.id ? { ...x, label: v } : x)) })} />
+                        <Field label={t("Label")} value={s.label} onChange={(v) => set({ stats: a.stats.map((x) => (x.id === s.id ? { ...x, label: v } : x)) })} />
                     </div>
                     <button onClick={() => set({ stats: a.stats.filter((x) => x.id !== s.id) })} className={delBtn}>×</button>
                 </div>
@@ -173,6 +178,7 @@ function AboutFields({ value, onChange }: { value: SiteContent; onChange: (c: Si
 }
 
 function ServiceImageUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+    const { t } = useT();
     const inputRef = useRef<HTMLInputElement>(null);
     const [progress, setProgress] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -189,7 +195,7 @@ function ServiceImageUpload({ value, onChange }: { value: string; onChange: (url
             const { url } = await promise;
             onChange(url);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Upload fehlgeschlagen.");
+            setError(err instanceof Error ? err.message : t("Upload fehlgeschlagen."));
         } finally {
             setProgress(null);
         }
@@ -204,7 +210,7 @@ function ServiceImageUpload({ value, onChange }: { value: string; onChange: (url
                 )}
             </div>
             <button type="button" onClick={() => inputRef.current?.click()} className={`mt-2 ${addBtn}`}>
-                {value ? "Bild ändern" : "Bild hochladen"}
+                {value ? t("Bild ändern") : t("Bild hochladen")}
             </button>
             {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
             <input ref={inputRef} type="file" accept="image/*" onChange={handle} className="hidden" />
@@ -221,6 +227,7 @@ function ServicesFields({
     onChange: (c: SiteContent) => void;
     confirm: Confirm;
 }) {
+    const { t } = useT();
     const s = value.services;
     const set = (patch: Partial<typeof s>) => onChange({ ...value, services: { ...s, ...patch } });
     const setItem = (id: string, patch: Partial<SiteContent["services"]["items"][number]>) =>
@@ -228,16 +235,16 @@ function ServicesFields({
 
     return (
         <div className="space-y-3">
-            <Field label="Überschrift" value={s.heading} onChange={(v) => set({ heading: v })} />
-            <Field label="Untertitel" value={s.subtitle} onChange={(v) => set({ subtitle: v })} />
+            <Field label={t("Überschrift")} value={s.heading} onChange={(v) => set({ heading: v })} />
+            <Field label={t("Untertitel")} value={s.subtitle} onChange={(v) => set({ subtitle: v })} />
 
             <div className="flex items-center justify-between pt-1">
-                <span className="text-xs uppercase tracking-wide text-gray-400">Services</span>
+                <span className="text-xs uppercase tracking-wide text-gray-400">{t("Services")}</span>
                 <button
                     onClick={() => set({ items: [...s.items, { id: uid(), title: "Neuer Service", slug: "neuer-service", short: "", long: "", imageUrl: "" }] })}
                     className={addBtn}
                 >
-                    + Service
+                    {t("+ Service")}
                 </button>
             </div>
 
@@ -248,22 +255,22 @@ function ServicesFields({
                         <button
                             onClick={async () => {
                                 const ok = await confirm({
-                                    title: "Service entfernen?",
-                                    message: "Der Service inkl. Bild und Service-Seite wird beim Speichern entfernt.",
-                                    confirmLabel: "Entfernen",
+                                    title: t("Service entfernen?"),
+                                    message: t("Der Service inkl. Bild und Service-Seite wird beim Speichern entfernt."),
+                                    confirmLabel: t("Entfernen"),
                                     tone: "danger",
                                 });
                                 if (ok) set({ items: s.items.filter((x) => x.id !== item.id) });
                             }}
                             className="rounded-full border border-black/10 px-3 py-1 text-xs transition hover:border-red-400 hover:text-red-600"
                         >
-                            Entfernen
+                            {t("Entfernen")}
                         </button>
                     </div>
                     <ServiceImageUpload value={item.imageUrl} onChange={(url) => setItem(item.id, { imageUrl: url })} />
-                    <Field label="Titel" value={item.title} onChange={(v) => setItem(item.id, { title: v, slug: slugify(v) })} />
-                    <Field label="Kurztext (Karte)" value={item.short} onChange={(v) => setItem(item.id, { short: v })} />
-                    <Field label="Detail-Text (Service-Seite)" value={item.long} onChange={(v) => setItem(item.id, { long: v })} area />
+                    <Field label={t("Titel")} value={item.title} onChange={(v) => setItem(item.id, { title: v, slug: slugify(v) })} />
+                    <Field label={t("Kurztext (Karte)")} value={item.short} onChange={(v) => setItem(item.id, { short: v })} />
+                    <Field label={t("Detail-Text (Service-Seite)")} value={item.long} onChange={(v) => setItem(item.id, { long: v })} area />
                 </div>
             ))}
         </div>
@@ -279,6 +286,7 @@ export default function SectionContentEditor({
     value: SiteContent;
     onChange: (next: SiteContent) => void;
 }) {
+    const { t } = useT();
     const [saving, setSaving] = useState(false);
     const [status, setStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -294,10 +302,10 @@ export default function SectionContentEditor({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(value),
             });
-            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Speichern fehlgeschlagen.");
-            setStatus("Gespeichert ✓");
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? t("Speichern fehlgeschlagen."));
+            setStatus(t("Gespeichert ✓"));
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Speichern fehlgeschlagen.");
+            setError(err instanceof Error ? err.message : t("Speichern fehlgeschlagen."));
         } finally {
             setSaving(false);
         }
@@ -305,7 +313,7 @@ export default function SectionContentEditor({
 
     return (
         <div className="mb-6 rounded-2xl border border-black/10 bg-white p-5">
-            <h3 className="mb-3 text-sm font-medium text-[#0B0B0B]">Texte</h3>
+            <h3 className="mb-3 text-sm font-medium text-[#0B0B0B]">{t("Texte")}</h3>
 
             {kind === "hero" && <HeroFields value={value} onChange={onChange} />}
             {kind === "services" && <ServicesFields value={value} onChange={onChange} confirm={confirm} />}
@@ -315,7 +323,7 @@ export default function SectionContentEditor({
 
             <div className="mt-4 flex items-center gap-3">
                 <button onClick={save} disabled={saving} className="rounded-full bg-[#C8A24A] px-6 py-2 text-sm font-medium text-black transition hover:scale-[1.02] disabled:opacity-50">
-                    {saving ? "Speichern …" : "Texte speichern"}
+                    {saving ? t("Speichern …") : t("Texte speichern")}
                 </button>
                 {status && <span className="text-xs text-green-600">{status}</span>}
                 {error && <span className="text-xs text-red-600">{error}</span>}
