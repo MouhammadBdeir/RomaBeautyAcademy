@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useT } from "./AdminI18nProvider";
 
 export type ConfirmOptions = {
     title: string;
@@ -51,7 +52,8 @@ function ConfirmDialog({
     onConfirm: () => void;
     onCancel: () => void;
 }) {
-    const { title, message, confirmLabel = "Bestätigen", cancelLabel = "Abbrechen", tone = "default" } = options;
+    const { t } = useT();
+    const { title, message, confirmLabel, cancelLabel, tone = "default" } = options;
 
     // Escape schließt, Body-Scroll sperren solange offen.
     useEffect(() => {
@@ -92,10 +94,10 @@ function ConfirmDialog({
                         onClick={onCancel}
                         className="rounded-full border border-black/10 px-5 py-2 text-sm transition hover:border-[#C8A24A]"
                     >
-                        {cancelLabel}
+                        {cancelLabel ?? t("Abbrechen")}
                     </button>
                     <button onClick={onConfirm} autoFocus className={confirmCls}>
-                        {confirmLabel}
+                        {confirmLabel ?? t("Bestätigen")}
                     </button>
                 </div>
             </div>
@@ -154,7 +156,8 @@ function ChoiceDialog({
     onPick: (value: string) => void;
     onCancel: () => void;
 }) {
-    const { title, message, choices, cancelLabel = "Abbrechen" } = options;
+    const { t } = useT();
+    const { title, message, choices, cancelLabel } = options;
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -198,7 +201,7 @@ function ChoiceDialog({
                         </button>
                     ))}
                     <button onClick={onCancel} className="mt-1 px-5 py-2 text-sm text-gray-500 transition hover:text-[#0B0B0B]">
-                        {cancelLabel}
+                        {cancelLabel ?? t("Abbrechen")}
                     </button>
                 </div>
             </div>

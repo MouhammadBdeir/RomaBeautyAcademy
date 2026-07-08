@@ -13,6 +13,7 @@ import GalleryManager from "./GalleryManager";
 import SectionContentEditor from "./SectionContentEditor";
 import NavbarStylePicker from "./NavbarStylePicker";
 import type { NavbarStyle } from "@/lib/branding/types";
+import { useT } from "./AdminI18nProvider";
 
 type Entry =
     | { kind: "home"; section: HomeSection }
@@ -59,6 +60,7 @@ export default function MediaWorkspace({
     initialContent?: SiteContent;
     navbarStyle?: NavbarStyle;
 }) {
+    const { t } = useT();
     const [selected, setSelected] = useState<string>("hero");
     const [content, setContent] = useState<SiteContent>(initialContent ?? DEFAULT_CONTENT);
 
@@ -72,7 +74,7 @@ export default function MediaWorkspace({
         <div className="grid lg:grid-cols-[300px_1fr] gap-6">
             {/* LINKS: Mini-Homepage */}
             <div className="lg:sticky lg:top-20 self-start">
-                <p className="mb-2 text-xs uppercase tracking-wide text-gray-400">Startseite (von oben nach unten)</p>
+                <p className="mb-2 text-xs uppercase tracking-wide text-gray-400">{t("Startseite (von oben nach unten)")}</p>
                 <div className="space-y-2">
                     {HOME_SECTIONS.map((section) => (
                         <SectionRow
@@ -84,20 +86,20 @@ export default function MediaWorkspace({
                     ))}
                 </div>
 
-                <p className="mb-2 mt-5 text-xs uppercase tracking-wide text-gray-400">Weitere</p>
+                <p className="mb-2 mt-5 text-xs uppercase tracking-wide text-gray-400">{t("Weitere")}</p>
                 <div className="space-y-2">
                     {PAGE_ENTRIES.map((e) => (
                         <button
                             key={e.id}
                             onClick={() => setSelected(e.id)}
-                            className={`w-full rounded-xl border bg-white p-3 text-left transition ${
+                            className={`w-full rounded-xl border bg-white p-3 text-start transition ${
                                 selected === e.id
                                     ? "border-[#C8A24A] ring-1 ring-[#C8A24A]"
                                     : "border-black/10 hover:border-[#C8A24A]/50"
                             }`}
                         >
-                            <p className="text-sm font-medium text-[#0B0B0B]">{e.label}</p>
-                            <p className="text-xs text-gray-500">{e.id === "branding" ? "Logo" : "separate Seite"}</p>
+                            <p className="text-sm font-medium text-[#0B0B0B]">{t(e.label)}</p>
+                            <p className="text-xs text-gray-500">{e.id === "branding" ? t("Logo") : t("separate Seite")}</p>
                         </button>
                     ))}
                 </div>
@@ -126,6 +128,7 @@ function SectionRow({
     selected: boolean;
     onSelect: () => void;
 }) {
+    const { t } = useT();
     const visible = useSectionVisible(section.id);
     const setLocal = useSetSectionVisible();
     const [busy, setBusy] = useState(false);
@@ -171,16 +174,16 @@ function SectionRow({
             </div>
 
             <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-[#0B0B0B]">{section.label}</p>
+                <p className="truncate text-sm font-medium text-[#0B0B0B]">{t(section.label)}</p>
                 <p className={`truncate text-xs ${err ? "text-red-600" : "text-gray-500"}`}>
-                    {err ? "Fehler – erneut versuchen" : visible ? "Sichtbar" : "Ausgeblendet"}
+                    {err ? t("Fehler – erneut versuchen") : visible ? t("Sichtbar") : t("Ausgeblendet")}
                 </p>
             </div>
 
             <button
                 onClick={toggle}
                 disabled={busy}
-                aria-label={visible ? "Sektion ausblenden" : "Sektion einblenden"}
+                aria-label={visible ? t("Sektion ausblenden") : t("Sektion einblenden")}
                 className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-50 ${
                     visible ? "bg-[#C8A24A]" : "bg-gray-300"
                 }`}
@@ -214,10 +217,11 @@ function Detail({
     onContentChange: (c: SiteContent) => void;
     navbarStyle: NavbarStyle;
 }) {
+    const { t } = useT();
     if (entry.kind === "page") {
         return (
             <div>
-                <DetailHeader title={entry.label} description={entry.description} href={entry.href} />
+                <DetailHeader title={t(entry.label)} description={t(entry.description)} href={entry.href} />
                 {entry.id === "branding" && <NavbarStylePicker initial={navbarStyle} />}
                 <SlotGrid slots={MEDIA_SLOTS.filter((s) => s.group === entry.groupId)} />
             </div>
@@ -232,14 +236,13 @@ function Detail({
 
     return (
         <div>
-            <DetailHeader title={section.label} description={section.description} href={href} />
+            <DetailHeader title={t(section.label)} description={t(section.description)} href={href} />
             {contentKind && <SectionContentEditor kind={contentKind} value={content} onChange={onContentChange} />}
             {media.kind === "group" && <SlotGrid slots={MEDIA_SLOTS.filter((s) => s.group === media.groupId)} />}
             {media.kind === "gallery" && <GalleryManager initial={gallery} />}
             {media.kind === "none" && !contentKind && (
                 <p className="rounded-2xl border border-black/10 bg-white p-6 text-sm text-gray-500">
-                    Diese Sektion hat keine bearbeitbaren Bilder. Über den Schalter links kannst du sie ein- oder
-                    ausblenden.
+                    {t("Diese Sektion hat keine bearbeitbaren Bilder. Über den Schalter links kannst du sie ein- oder ausblenden.")}
                 </p>
             )}
         </div>
@@ -255,6 +258,7 @@ function DetailHeader({
     description: string;
     href?: string;
 }) {
+    const { t } = useT();
     return (
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-black/10 pb-3">
             <div>
@@ -268,7 +272,7 @@ function DetailHeader({
                     rel="noreferrer"
                     className="whitespace-nowrap text-sm text-[#C8A24A] hover:underline"
                 >
-                    Auf der Seite ansehen ↗
+                    {t("Auf der Seite ansehen ↗")}
                 </a>
             )}
         </div>
@@ -276,8 +280,9 @@ function DetailHeader({
 }
 
 function SlotGrid({ slots }: { slots: MediaSlot[] }) {
+    const { t } = useT();
     if (slots.length === 0) {
-        return <p className="text-sm text-gray-500">Keine Bilder in dieser Sektion.</p>;
+        return <p className="text-sm text-gray-500">{t("Keine Bilder in dieser Sektion.")}</p>;
     }
     return (
         <div className="grid sm:grid-cols-2 gap-4">

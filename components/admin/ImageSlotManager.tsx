@@ -7,8 +7,10 @@ import { compressImage, formatBytes } from "@/lib/media/resize";
 import { uploadFile } from "@/lib/media/upload";
 import type { MediaSlot } from "@/lib/media/registry";
 import { useConfirm } from "./ConfirmDialog";
+import { useT } from "./AdminI18nProvider";
 
 export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
+    const { t } = useT();
     const currentUrl = useMediaUrl(slot.key);
     const inputRef = useRef<HTMLInputElement>(null);
     const { confirm, dialog } = useConfirm();
@@ -33,12 +35,12 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
         setPreview(localUrl);
 
         try {
-            setStatus("Komprimiere …");
+            setStatus(t("Komprimiere …"));
             const { file: compressed, width, height, sizeBytes } = await compressImage(file, {
                 maxDimension: 2000,
             });
 
-            setStatus(`Lade hoch … ${width}×${height}, ${formatBytes(sizeBytes)}`);
+            setStatus(`${t("Lade hoch …")} ${width}×${height}, ${formatBytes(sizeBytes)}`);
             setProgress(0);
             const { promise } = uploadFile(compressed, "website-images", setProgress);
             const { url, path } = await promise;
@@ -50,12 +52,12 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
             });
             if (!res.ok) {
                 const d = await res.json().catch(() => ({}));
-                throw new Error(d.error ?? "Speichern fehlgeschlagen.");
+                throw new Error(d.error ?? t("Speichern fehlgeschlagen."));
             }
             setSavedUrl(url); // sofort anzeigen, auch ohne Firestore-Live
-            setStatus("Gespeichert ✓");
+            setStatus(t("Gespeichert ✓"));
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Upload fehlgeschlagen.");
+            setError(err instanceof Error ? err.message : t("Upload fehlgeschlagen."));
         } finally {
             setBusy(false);
             setProgress(null);
@@ -67,9 +69,9 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
     async function reset() {
         if (busy) return;
         const ok = await confirm({
-            title: "Auf Standard zurücksetzen?",
-            message: "Dein hochgeladenes Bild wird entfernt und das Standardbild wieder angezeigt.",
-            confirmLabel: "Zurücksetzen",
+            title: t("Auf Standard zurücksetzen?"),
+            message: t("Dein hochgeladenes Bild wird entfernt und das Standardbild wieder angezeigt."),
+            confirmLabel: t("Zurücksetzen"),
             tone: "danger",
         });
         if (!ok) return;
@@ -82,12 +84,12 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
             });
             if (!res.ok) {
                 const d = await res.json().catch(() => ({}));
-                throw new Error(d.error ?? "Zurücksetzen fehlgeschlagen.");
+                throw new Error(d.error ?? t("Zurücksetzen fehlgeschlagen."));
             }
             setSavedUrl(null);
-            setStatus("Auf Standard zurückgesetzt ✓");
+            setStatus(t("Auf Standard zurückgesetzt ✓"));
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Fehler.");
+            setError(err instanceof Error ? err.message : t("Fehler."));
         } finally {
             setBusy(false);
         }
@@ -102,7 +104,7 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
                 style={{ aspectRatio: slot.aspect }}
             >
                 {shown && (
-                    <Image src={shown} alt={slot.label} fill sizes="320px" unoptimized className="object-cover" />
+                    <Image src={shown} alt={t(slot.label)} fill sizes="320px" unoptimized className="object-cover" />
                 )}
 
                 {progress !== null && (
@@ -121,10 +123,10 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
             </div>
 
             <div className="mt-3">
-                <p className="text-sm font-medium text-[#0B0B0B]">{slot.label}</p>
-                <p className="text-xs text-gray-500">{slot.where}</p>
+                <p className="text-sm font-medium text-[#0B0B0B]">{t(slot.label)}</p>
+                <p className="text-xs text-gray-500">{t(slot.where)}</p>
                 <p className="mt-1 inline-block rounded-md bg-[#C8A24A]/10 px-2 py-0.5 text-xs text-[#8a6d24]">
-                    Empfohlen: {slot.recommended} · {slot.aspect.replace("/", ":")}
+                    {t("Empfohlen:")} {slot.recommended} · {slot.aspect.replace("/", ":")}
                 </p>
             </div>
 
@@ -137,14 +139,14 @@ export default function ImageSlotManager({ slot }: { slot: MediaSlot }) {
                     disabled={busy}
                     className="px-4 py-2 rounded-full bg-[#C8A24A] text-black text-sm hover:scale-[1.03] transition disabled:opacity-50"
                 >
-                    Bild ändern
+                    {t("Bild ändern")}
                 </button>
                 <button
                     onClick={reset}
                     disabled={busy}
                     className="px-4 py-2 rounded-full border border-black/10 text-sm hover:border-[#C8A24A] transition disabled:opacity-50"
                 >
-                    Standard
+                    {t("Standard")}
                 </button>
             </div>
 
