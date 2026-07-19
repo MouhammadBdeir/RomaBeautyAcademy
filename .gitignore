@@ -35,6 +35,9 @@ firebase-debug.*.log
 # env files (can opt-in for committing if needed)
 .env*
 
+# Firebase-Dienstkonten-Schlüssel (niemals committen!)
+scripts/*service-account*.json
+
 # vercel
 .vercel
 

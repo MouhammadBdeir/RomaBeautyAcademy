@@ -39,14 +39,21 @@ export async function POST(request: Request) {
         if (!data) {
             return NextResponse.json({ error: "Benachrichtigung nicht gefunden." }, { status: 404 });
         }
-        // Offene Anfragen dürfen nicht weggeklickt werden.
+        // Offene Anfragen dürfen nicht weggeklickt werden – außer die
+        // zugehörige Buchung existiert nicht mehr (verwaiste Benachrichtigung).
         if (data.status === "pending") {
-            return NextResponse.json(
-                {
-                    error: "Solange die Anfrage offen ist, lässt sie sich nicht löschen. Bestätige oder sage den Termin zuerst ab.",
-                },
-                { status: 400 },
-            );
+            const bookingId = typeof data.bookingId === "string" ? data.bookingId : "";
+            const bookingExists = bookingId
+                ? (await adminDb().collection("bookings").doc(bookingId).get()).exists
+                : false;
+            if (bookingExists) {
+                return NextResponse.json(
+                    {
+                        error: "Solange die Anfrage offen ist, lässt sie sich nicht löschen. Bestätige oder sage den Termin zuerst ab.",
+                    },
+                    { status: 400 },
+                );
+            }
         }
         await ref.delete();
         return NextResponse.json({ ok: true });

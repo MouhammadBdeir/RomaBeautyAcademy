@@ -422,6 +422,32 @@ function LogsViewer({ initial }: { initial: LogEntry[] }) {
     const [logs, setLogs] = useState<LogEntry[]>(initial);
     const [filter, setFilter] = useState<"all" | LogCategory>("all");
     const [busy, setBusy] = useState(false);
+    const [resetBusy, setResetBusy] = useState(false);
+    const [resetMsg, setResetMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+    // Zurücksetzen anfragen – geleert wird erst nach Owner-Bestätigung per E-Mail.
+    async function requestReset() {
+        setResetBusy(true);
+        setResetMsg(null);
+        try {
+            const res = await fetch("/api/admin/logs/reset", { method: "POST" });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(d.error ?? t("Speichern fehlgeschlagen."));
+            setResetMsg({
+                ok: true,
+                text: t(
+                    "Bestätigungs-E-Mail an den Owner gesendet. Das Protokoll wird erst nach Klick auf den Link geleert.",
+                ),
+            });
+        } catch (err) {
+            setResetMsg({
+                ok: false,
+                text: err instanceof Error ? err.message : t("Speichern fehlgeschlagen."),
+            });
+        } finally {
+            setResetBusy(false);
+        }
+    }
 
     async function refresh() {
         setBusy(true);
@@ -445,14 +471,27 @@ function LogsViewer({ initial }: { initial: LogEntry[] }) {
         <section className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-medium text-[#0B0B0B]">{t("Protokoll")}</h2>
-                <button
-                    onClick={refresh}
-                    disabled={busy}
-                    className="rounded-full border border-black/10 px-4 py-1.5 text-sm transition hover:border-[#C8A24A] disabled:opacity-50"
-                >
-                    {busy ? t("Lädt …") : t("Aktualisieren")}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={refresh}
+                        disabled={busy}
+                        className="rounded-full border border-black/10 px-4 py-1.5 text-sm transition hover:border-[#C8A24A] disabled:opacity-50"
+                    >
+                        {busy ? t("Lädt …") : t("Aktualisieren")}
+                    </button>
+                    <button
+                        onClick={requestReset}
+                        disabled={resetBusy}
+                        className="rounded-full border border-black/10 px-4 py-1.5 text-sm transition hover:border-red-400 hover:text-red-600 disabled:opacity-50"
+                    >
+                        {resetBusy ? t("Senden …") : t("Protokoll zurücksetzen")}
+                    </button>
+                </div>
             </div>
+
+            {resetMsg && (
+                <p className={`mb-4 text-sm ${resetMsg.ok ? "text-green-600" : "text-red-600"}`}>{resetMsg.text}</p>
+            )}
 
             <div className="mb-4 flex flex-wrap gap-2">
                 {filters.map((f) => (

@@ -39,6 +39,21 @@ export async function addLog(entry: {
     }
 }
 
+/** Löscht alle Protokoll-Einträge (in 500er-Batches). Gibt die Anzahl zurück. */
+export async function clearLogs(): Promise<number> {
+    const col = adminDb().collection("logs");
+    let total = 0;
+    for (;;) {
+        const snap = await col.limit(500).get();
+        if (snap.empty) break;
+        const batch = adminDb().batch();
+        snap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+        total += snap.size;
+    }
+    return total;
+}
+
 export async function getLogs(limitN = 100): Promise<LogEntry[]> {
     try {
         const snap = await adminDb().collection("logs").orderBy("createdAt", "desc").limit(limitN).get();

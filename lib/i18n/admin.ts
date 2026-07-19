@@ -122,6 +122,9 @@ const AR: Record<string, string> = {
     Protokoll: "السجل",
     "Lädt …": "جارٍ التحميل …",
     Aktualisieren: "تحديث",
+    "Protokoll zurücksetzen": "إعادة تعيين السجل",
+    "Bestätigungs-E-Mail an den Owner gesendet. Das Protokoll wird erst nach Klick auf den Link geleert.":
+        "تم إرسال رسالة تأكيد إلى المالك. لن يُفرَّغ السجل إلا بعد النقر على الرابط.",
     Alle: "الكل",
     "Keine Einträge.": "لا توجد إدخالات.",
     // Log-Kategorien
@@ -524,6 +527,10 @@ const AR: Record<string, string> = {
         "تم طلب تغيير الإعدادات – بانتظار تأكيد المالك",
     "Einstellungen per Owner-Bestätigung übernommen": "تم تطبيق الإعدادات بعد تأكيد المالك",
     "Einstellungen bestätigen – RomaBeautyAcademy": "تأكيد الإعدادات – RomaBeautyAcademy",
+    "Protokoll-Zurücksetzen angefragt – wartet auf Bestätigung des Owners":
+        "طُلب إعادة تعيين السجل – بانتظار تأكيد المالك",
+    "Protokoll per Owner-Bestätigung zurückgesetzt": "تمت إعادة تعيين السجل بعد تأكيد المالك",
+    "Protokoll zurücksetzen – RomaBeautyAcademy": "إعادة تعيين السجل – RomaBeautyAcademy",
     // Buchungs-Status (als Rohwert im Log)
     confirmed: "مؤكَّد",
     cancelled: "مُلغى",

@@ -14,7 +14,7 @@ export default async function AdminEmailPage() {
     return (
         <div className="min-h-screen bg-[#F7F3EE]">
             <AdminNav />
-            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+            <main className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-8 sm:py-10">
                 <h1 className="text-3xl font-light text-[#0B0B0B]">{t("E-Mail-Vorlagen")}</h1>
                 <p className="mt-1 mb-8 text-sm text-gray-500">
                     {t("Diese E-Mails verschickt die Seite automatisch. Betreff und Text kannst du frei anpassen – Design (Logo & Farben) und die Kontaktdaten im Fußbereich kommen automatisch aus deinen Kontaktdaten.")}

@@ -34,7 +34,7 @@ export default function AdminNav() {
 
     return (
         <header className="sticky top-0 z-40 border-b border-black/5 bg-white/80 backdrop-blur-xl">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+            <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 h-16 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-6 lg:gap-8">
                     <Link
                         href="/admin"
@@ -93,7 +93,7 @@ export default function AdminNav() {
             {/* Ausklappbares Menü – Mobil */}
             {open && (
                 <div className="lg:hidden border-t border-black/5 bg-white/95 backdrop-blur-xl">
-                    <nav className="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-1">
+                    <nav className="w-full px-4 sm:px-6 py-3 flex flex-col gap-1">
                         {LINKS.map((l) => {
                             const active = pathname === l.href;
                             return (

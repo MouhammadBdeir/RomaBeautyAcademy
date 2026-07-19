@@ -94,7 +94,7 @@ export default async function AdminDashboard() {
         <div className="min-h-screen bg-[#F7F3EE]">
             <AdminNav />
 
-            <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+            <main className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-8 sm:py-10">
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-light text-[#0B0B0B]">{t("Dashboard")}</h1>
